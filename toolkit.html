@@ -2,8 +2,16 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Tools</title>
+
+<!-- PWA / Add to Home Screen -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Tools">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="manifest" href="manifest.json">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -32,11 +40,16 @@
     color:var(--text);
     font-family:'Inter', system-ui, sans-serif;
     -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+    min-height:100dvh;
+    -webkit-tap-highlight-color:transparent;
   }
   .wrap{
     max-width:680px;
     margin:0 auto;
-    padding:56px 20px 90px;
+    padding:56px 20px calc(90px + env(safe-area-inset-bottom));
+    padding-left:calc(20px + env(safe-area-inset-left));
+    padding-right:calc(20px + env(safe-area-inset-right));
   }
   h1{
     font-size:26px;
@@ -199,7 +212,7 @@
     border-radius:10px;
     padding:12px 14px;
     font-family:inherit;
-    font-size:13.5px;
+    font-size:max(13.5px, 16px);
     resize:vertical;
     color:var(--text);
   }
@@ -259,13 +272,13 @@
     margin-bottom:5px;
     font-weight:500;
   }
-  input[type="date"], input[type="number"], input[type="text"], select{
+  input[type="date"], input[type="number"], input[type="text"], input[type="time"], select{
     width:100%;
     border:1px solid var(--border);
     border-radius:8px;
     padding:8px 10px;
     font-family:inherit;
-    font-size:13.5px;
+    font-size:16px;
     color:var(--text);
     background:#fff;
   }
@@ -2836,6 +2849,11 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.classList.add('active');
     document.querySelector(`.tab-pane[data-tab="${tabName}"]`).classList.add('active');
   });
+});
+
+// ========== PWA: REFRESH ON REOPEN ==========
+window.addEventListener('pageshow', e => {
+  if(e.persisted) location.reload();
 });
 </script>
 </body>
