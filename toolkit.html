@@ -1,0 +1,2842 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tools</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<style>
+  :root{
+    --bg:#F5F6F8;
+    --card:#FFFFFF;
+    --border:#E5E7EB;
+    --text:#1F2430;
+    --text-muted:#6B7280;
+    --text-faint:#9CA3AF;
+    --accent:#4F46E5;
+    --accent-hover:#4338CA;
+    --accent-soft:#EEF0FE;
+    --danger:#DC2626;
+    --ok:#059669;
+    --radius:14px;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Inter', system-ui, sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{
+    max-width:680px;
+    margin:0 auto;
+    padding:56px 20px 90px;
+  }
+  h1{
+    font-size:26px;
+    font-weight:700;
+    margin:0 0 8px;
+    letter-spacing:-0.01em;
+  }
+  .lede{
+    color:var(--text-muted);
+    font-size:14px;
+    margin:0 0 40px;
+  }
+  .card{
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+    padding:24px;
+    margin-bottom:24px;
+  }
+  .card h2{
+    font-size:17px;
+    font-weight:600;
+    margin:0 0 4px;
+  }
+  .card .sub{
+    color:var(--text-muted);
+    font-size:13px;
+    margin:0 0 20px;
+    line-height:1.5;
+  }
+  /* buttons */
+  button{
+    font-family:inherit;
+    cursor:pointer;
+  }
+  .btn{
+    background:var(--accent);
+    color:#fff;
+    border:none;
+    border-radius:9px;
+    padding:9px 16px;
+    font-size:13.5px;
+    font-weight:600;
+    transition:background .15s;
+  }
+  .btn:hover{ background:var(--accent-hover); }
+  .btn:disabled{ background:#C7C9D9; cursor:not-allowed; }
+  .btn.secondary{
+    background:var(--accent-soft);
+    color:var(--accent);
+  }
+  .btn.secondary:hover{ background:#E1E3FC; }
+  .btn.small{
+    padding:5px 9px;
+    font-size:12px;
+    border-radius:7px;
+  }
+  .btn.ghost{
+    background:transparent;
+    color:var(--text-muted);
+    border:1px solid var(--border);
+  }
+  .btn.ghost:hover{ background:#F3F4F6; }
+
+  /* ---- Folio ---- */
+  .drop{
+    border:1.5px dashed var(--border);
+    border-radius:10px;
+    padding:22px;
+    text-align:center;
+    color:var(--text-muted);
+    font-size:13.5px;
+    cursor:pointer;
+    transition:border-color .15s, background .15s;
+  }
+  .drop:hover, .drop.drag{
+    border-color:var(--accent);
+    background:var(--accent-soft);
+  }
+  .drop input{ display:none; }
+  .file-list{ margin-top:16px; display:flex; flex-direction:column; gap:8px; }
+  .file-row{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    background:#FAFAFB;
+    border:1px solid var(--border);
+    border-radius:9px;
+    padding:9px 10px;
+    transition:border-color .12s, background .12s;
+  }
+  .file-row.dragging{
+    opacity:0.4;
+  }
+  .file-row.drag-over{
+    border-color:var(--accent);
+    background:var(--accent-soft);
+  }
+  .drag-handle{
+    cursor:grab;
+    color:var(--text-faint);
+    font-size:14px;
+    line-height:1;
+    flex-shrink:0;
+    padding:0 2px;
+  }
+  .drag-handle:active{ cursor:grabbing; }
+  .file-badge{
+    font-size:10px;
+    font-weight:700;
+    letter-spacing:0.03em;
+    padding:3px 6px;
+    border-radius:5px;
+    background:var(--accent-soft);
+    color:var(--accent);
+    flex-shrink:0;
+  }
+  .file-name{
+    flex:1;
+    font-size:13px;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+  .file-actions{ display:flex; gap:4px; flex-shrink:0; }
+  .icon-btn{
+    background:none;
+    border:none;
+    color:var(--text-faint);
+    font-size:14px;
+    padding:3px 6px;
+    border-radius:5px;
+    line-height:1;
+  }
+  .icon-btn:hover{ background:#EFEFF2; color:var(--text); }
+  .icon-btn.remove:hover{ color:var(--danger); }
+  .folio-actions{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    margin-top:18px;
+  }
+  .status-line{ font-size:12.5px; color:var(--text-muted); }
+  .warning-box{
+    margin-top:12px;
+    background:#FFF8ED;
+    border:1px solid #F5D9A8;
+    color:#8A5A00;
+    font-size:12.5px;
+    border-radius:8px;
+    padding:10px 12px;
+    line-height:1.5;
+  }
+
+  /* ---- Case converter ---- */
+  textarea{
+    width:100%;
+    min-height:110px;
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:12px 14px;
+    font-family:inherit;
+    font-size:13.5px;
+    resize:vertical;
+    color:var(--text);
+  }
+  textarea:focus{ outline:none; border-color:var(--accent); }
+  .case-grid{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+    margin-top:14px;
+  }
+  .case-footer{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-top:16px;
+  }
+  .counts{ font-size:12.5px; color:var(--text-muted); }
+
+  /* ---- Day calculator ---- */
+  .tabs{
+    display:flex;
+    gap:4px;
+    background:#F1F2F5;
+    border-radius:9px;
+    padding:4px;
+    margin-bottom:20px;
+  }
+  .tab{
+    flex:1;
+    text-align:center;
+    padding:8px 10px;
+    font-size:13px;
+    font-weight:500;
+    border-radius:7px;
+    color:var(--text-muted);
+    background:transparent;
+    border:none;
+  }
+  .tab.active{
+    background:#fff;
+    color:var(--text);
+    box-shadow:0 1px 2px rgba(0,0,0,0.06);
+  }
+  .pane{ display:none; }
+  .pane.active{ display:block; }
+  .field-row{
+    display:flex;
+    gap:12px;
+    margin-bottom:14px;
+    flex-wrap:wrap;
+  }
+  .field{ flex:1; min-width:140px; }
+  .field label{
+    display:block;
+    font-size:12px;
+    color:var(--text-muted);
+    margin-bottom:5px;
+    font-weight:500;
+  }
+  input[type="date"], input[type="number"], input[type="text"], select{
+    width:100%;
+    border:1px solid var(--border);
+    border-radius:8px;
+    padding:8px 10px;
+    font-family:inherit;
+    font-size:13.5px;
+    color:var(--text);
+    background:#fff;
+  }
+  input:focus, select:focus{ outline:none; border-color:var(--accent); }
+  .radio-row{ display:flex; gap:16px; align-items:center; font-size:13px; margin-bottom:4px; flex-wrap:wrap; }
+  .radio-row label{ display:flex; align-items:center; gap:6px; cursor:pointer; }
+  .checkbox-row{ display:flex; align-items:center; gap:8px; font-size:13px; margin-bottom:16px; }
+  .fx-row{
+    display:flex;
+    align-items:flex-end;
+    gap:10px;
+    margin-bottom:14px;
+  }
+  .fx-swap{
+    flex-shrink:0;
+    width:34px;
+    height:34px;
+    padding:0;
+    font-size:15px;
+    border-radius:8px;
+  }
+  .fx-row-item{
+    display:grid;
+    grid-template-columns: 0.8fr 1fr auto 1fr auto auto;
+    gap:8px;
+    align-items:center;
+    background:#FAFAFB;
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:10px 12px;
+    margin-bottom:8px;
+  }
+  .fx-row-item .fx-amount{
+    padding:6px 8px;
+    font-size:13px;
+    border-radius:7px;
+    text-align:right;
+  }
+  .fx-row-item select{
+    padding:6px 8px;
+    font-size:13px;
+    border-radius:7px;
+    border:1px solid var(--border);
+  }
+  .fx-row-item .fx-result{
+    grid-column: 1 / -1;
+    font-size:13px;
+    color:var(--accent);
+    font-weight:600;
+    padding-top:4px;
+  }
+  .fx-row-item .fx-result .fx-rate-label{
+    font-size:11px;
+    color:var(--text-faint);
+    font-weight:400;
+    margin-left:8px;
+  }
+  .calc-toggle{
+    font-size:12.5px;
+    color:var(--accent);
+    background:none;
+    border:none;
+    padding:0;
+    margin-bottom:14px;
+    cursor:pointer;
+    text-decoration:underline;
+  }
+  .calc-wrap{ display:none; margin-bottom:16px; }
+  .calc-wrap.open{ display:block; }
+  .calc-display{
+    background:#F5F6F8;
+    border:1px solid var(--border);
+    border-radius:8px;
+    padding:10px 12px;
+    text-align:right;
+    margin-bottom:8px;
+    overflow-x:auto;
+  }
+  .calc-preview{
+    font-size:12.5px;
+    color:var(--text-faint);
+    white-space:nowrap;
+    min-height:16px;
+  }
+  .calc-current{
+    font-size:20px;
+    font-weight:600;
+    white-space:nowrap;
+    color:var(--text);
+  }
+  .calc-grid{
+    display:grid;
+    grid-template-columns:repeat(4, 1fr);
+    gap:6px;
+  }
+  .calc-btn{
+    padding:10px 0;
+    border-radius:8px;
+    border:1px solid var(--border);
+    background:#fff;
+    font-size:15px;
+    font-weight:500;
+    color:var(--text);
+    cursor:pointer;
+    font-family:inherit;
+  }
+  .calc-btn:hover{ background:#F3F4F6; }
+  .calc-btn.op{ background:var(--accent-soft); color:var(--accent); font-weight:700; }
+  .calc-btn.op:hover{ background:#E1E3FC; }
+  .calc-btn.equals{ background:var(--accent); color:#fff; border-color:var(--accent); }
+  .calc-btn.equals:hover{ background:var(--accent-hover); }
+  .calc-btn.clear{ color:var(--danger); }
+  .calc-zero{ grid-column: span 2; }
+  .result-box{
+    background:var(--accent-soft);
+    border-radius:10px;
+    padding:16px;
+    margin-top:6px;
+  }
+  .result-box .big{ font-size:22px; font-weight:700; color:var(--accent); }
+  .result-box .label{ font-size:12.5px; color:var(--text-muted); margin-top:5px; }
+  .result-box .label:first-of-type{ margin-top:2px; }
+  .hours-per-day-note{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    font-size:12px;
+    color:var(--text-faint);
+    margin-top:12px;
+  }
+  .hours-per-day-note input{
+    width:44px;
+    padding:3px 5px;
+    font-size:12px;
+    text-align:center;
+    border:1px solid var(--border);
+    border-radius:6px;
+    color:var(--text-muted);
+  }
+  .holiday-list{
+    max-height:320px;
+    overflow-y:auto;
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+    margin-bottom:16px;
+  }
+  .holiday-row{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:8px 10px;
+    border:1px solid var(--border);
+    border-radius:8px;
+    font-size:13px;
+  }
+  .holiday-date{
+    font-weight:600;
+    width:78px;
+    flex-shrink:0;
+    color:var(--text);
+    font-size:12.5px;
+  }
+  .holiday-name{ flex:1; }
+  .region-tag{
+    font-size:10px;
+    font-weight:700;
+    padding:2px 6px;
+    border-radius:5px;
+    flex-shrink:0;
+  }
+  .region-Federal{ background:#EEF0FE; color:var(--accent); }
+  .region-Selangor{ background:#E7F6EE; color:var(--ok); }
+  .region-KL{ background:#FDEEF0; color:#C0264C; }
+  .region-Custom{ background:#F1F2F5; color:var(--text-muted); }
+  .custom-holiday-form{
+    display:flex;
+    gap:8px;
+    align-items:flex-end;
+    border-top:1px solid var(--border);
+    padding-top:16px;
+  }
+
+  /* ---- Leaflet (page picker) ---- */
+  .leaflet-toolbar{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    margin-bottom:16px;
+    flex-wrap:wrap;
+  }
+  .mode-toggle{
+    display:flex;
+    gap:4px;
+    background:#F1F2F5;
+    border-radius:9px;
+    padding:4px;
+  }
+  .mode-btn{
+    padding:7px 14px;
+    font-size:12.5px;
+    font-weight:500;
+    border-radius:7px;
+    color:var(--text-muted);
+    background:transparent;
+    border:none;
+  }
+  .mode-btn.active{
+    background:#fff;
+    color:var(--text);
+    box-shadow:0 1px 2px rgba(0,0,0,0.06);
+  }
+  .leaflet-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill, minmax(84px, 1fr));
+    gap:10px;
+    margin-bottom:18px;
+  }
+  .leaflet-thumb{
+    position:relative;
+    border:2px solid var(--border);
+    border-radius:8px;
+    overflow:visible;
+    cursor:grab;
+    background:#fff;
+    transition:border-color .12s, opacity .12s, transform .12s;
+    user-select:none;
+  }
+  .leaflet-thumb:active{ cursor:grabbing; }
+  .leaflet-thumb:hover{ border-color:#C7CAE8; }
+  .leaflet-thumb.dragging{ opacity:0.4; transform:scale(0.97); }
+  .leaflet-thumb.drag-over{ border-color:var(--accent); border-style:dashed; }
+  .leaflet-thumb canvas{
+    display:block;
+    width:100%;
+    height:auto;
+    border-radius:6px;
+    pointer-events:none;
+  }
+  .leaflet-del-btn{
+    position:absolute;
+    top:-7px;
+    right:-7px;
+    width:20px;
+    height:20px;
+    background:var(--danger);
+    color:#fff;
+    font-size:11px;
+    font-weight:700;
+    border-radius:50%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    border:2px solid #fff;
+    line-height:1;
+    z-index:2;
+  }
+  .leaflet-del-btn:hover{ background:#b91c1c; }
+  .leaflet-page-num{
+    position:absolute;
+    bottom:4px;
+    right:4px;
+    background:rgba(0,0,0,0.55);
+    color:#fff;
+    font-size:9.5px;
+    padding:1px 5px;
+    border-radius:4px;
+    pointer-events:none;
+  }
+  .leaflet-empty{
+    color:var(--text-faint);
+    font-size:13px;
+    text-align:center;
+    padding:8px 0 4px;
+  }
+
+  /* ---- Format Text ---- */
+  .format-toolbar{
+    display:flex;
+    gap:8px;
+    margin-bottom:12px;
+    flex-wrap:wrap;
+  }
+  .format-toolbar .btn.small{ min-width:38px; }
+  .format-editor{
+    min-height:110px;
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:12px 14px;
+    font-size:11px;
+    line-height:1.7;
+    white-space:pre-wrap;
+    word-break:break-word;
+    color:var(--text);
+  }
+  .format-editor:focus{ outline:none; border-color:var(--accent); }
+  .format-editor:empty:before{
+    content: attr(data-placeholder);
+    color:var(--text-faint);
+  }
+
+  /* ---- Remove Duplicates ---- */
+  .dedupe-options{
+    display:flex;
+    flex-wrap:wrap;
+    gap:14px;
+    margin-top:14px;
+    font-size:13px;
+    color:var(--text-muted);
+  }
+  .dedupe-options label{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    cursor:pointer;
+  }
+  textarea[readonly]{
+    background:#FAFAFB;
+    color:var(--text);
+  }
+  .tabs-nav{
+    display:flex;
+    gap:8px;
+    margin-bottom:20px;
+    border-bottom:2px solid var(--border);
+  }
+  .tab-btn{
+    padding:10px 16px;
+    border:none;
+    background:none;
+    border-bottom:3px solid transparent;
+    color:var(--text-muted);
+    font-family:inherit;
+    font-size:14px;
+    font-weight:500;
+    cursor:pointer;
+    transition:all 0.2s;
+    margin-bottom:-2px;
+  }
+  .tab-btn:hover{
+    color:var(--text);
+  }
+  .tab-btn.active{
+    color:var(--accent);
+    border-bottom-color:var(--accent);
+  }
+  .tab-pane{
+    display:none;
+  }
+  .tab-pane.active{
+    display:block;
+  }
+  .tz-result-row{
+    display:grid;
+    grid-template-columns: 1fr;
+    gap:6px;
+    padding:8px;
+    background:#FAFAFB;
+    border:1px solid var(--border);
+    border-radius:8px;
+    text-align:center;
+  }
+  #tzResults{
+    display:grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap:10px;
+  }
+  .tz-result-tz{
+    font-size:12px;
+    color:var(--text-muted);
+    font-weight:500;
+  }
+  .tz-result-time{
+    font-size:16px;
+    color:var(--accent);
+    font-weight:600;
+  }
+  .tz-checkbox{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    font-size:13px;
+    padding:4px;
+  }
+  .tz-checkbox input[type="checkbox"]{
+    cursor:pointer;
+    width:16px;
+    height:16px;
+  }
+  .tz-checkbox label{
+    cursor:pointer;
+    margin:0;
+  }
+  #tzCheckboxes{
+    border:1px solid var(--border);
+    border-radius:8px;
+    padding:8px;
+  }
+  #tzCheckboxes::-webkit-scrollbar{
+    width:6px;
+  }
+  #tzCheckboxes::-webkit-scrollbar-track{
+    background:transparent;
+  }
+  #tzCheckboxes::-webkit-scrollbar-thumb{
+    background:var(--border);
+    border-radius:3px;
+  }
+  #tzCheckboxes::-webkit-scrollbar-thumb:hover{
+    background:var(--text-muted);
+  }
+  #tzSelect{
+    width:100%;
+    padding:8px;
+    font-family:inherit;
+    font-size:13px;
+    border:1px solid var(--border);
+    border-radius:8px;
+    background:#fff;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Tools</h1>
+  <p class="lede">Nine utilities, running entirely in this page. Nothing you open or type here leaves your browser — except the currency converter, which needs a connection to fetch live rates.</p>
+
+  <div class="tabs-nav">
+    <button class="tab-btn active" data-tab="pdf-tools">PDF Tools</button>
+    <button class="tab-btn" data-tab="extract-data">Extract Data</button>
+    <button class="tab-btn" data-tab="calculators">Converters</button>
+  </div>
+
+  <!-- ============ TAB: PDF TOOLS ============ -->
+  <div class="tab-pane active" data-tab="pdf-tools">
+
+  <!-- ============ FOLIO ============ -->
+  <div class="card">
+    <h2>Merge Documents</h2>
+    <p class="sub">Combine PDFs, images, spreadsheets and Outlook messages into one PDF, in whatever order you drop them.</p>
+
+    <div class="drop" id="dropZone">
+      Drop files here, or click to choose<br>
+      <span style="font-size:12px; color:var(--text-faint);">PDF · PNG/JPG · XLSX · MSG</span>
+      <input type="file" id="fileInput" multiple accept=".pdf,.png,.jpg,.jpeg,.xlsx,.xls,.msg">
+    </div>
+
+    <div class="file-list" id="fileList"></div>
+
+    <div class="folio-actions" id="folioActions" style="display:none;">
+      <button class="btn" id="mergeBtn">Merge &amp; download PDF</button>
+      <button class="btn ghost" id="clearBtn">Clear</button>
+      <span class="status-line" id="folioStatus"></span>
+    </div>
+
+    <div class="warning-box" id="folioWarnings" style="display:none;"></div>
+  </div>
+
+  <!-- ============ LEAFLET ============ -->
+  <div class="card">
+    <h2>Edit &amp; Organise PDF</h2>
+    <p class="sub">Drag pages to reorder them. Hit ✕ to remove a page. Then download.</p>
+
+    <div class="drop" id="leafletDrop">
+      Drop a PDF here, or click to choose
+      <input type="file" id="leafletInput" accept=".pdf">
+    </div>
+
+    <div id="leafletWorkspace" style="display:none; margin-top:18px;">
+      <p class="leaflet-empty" id="leafletHint">Drag to reorder · ✕ to remove a page</p>
+      <div class="leaflet-grid" id="leafletGrid"></div>
+      <div class="folio-actions">
+        <button class="btn" id="leafletDownloadBtn" disabled>Load a PDF first</button>
+        <span class="status-line" id="leafletStatus"></span>
+      </div>
+    </div>
+  </div>
+
+  </div><!-- end tab-pane pdf-tools -->
+
+  <!-- ============ TAB: EXTRACT DATA ============ -->
+  <div class="tab-pane" data-tab="extract-data">
+
+  <!-- ============ FORMAT TEXT ============ -->
+  <div class="card">
+    <h2>Format Text</h2>
+    <p class="sub">Type your text, then select any word or phrase and click Bold, Italic or Underline — mix and match on the same words, then copy for Facebook, Instagram, WhatsApp and more.</p>
+
+    <div class="format-toolbar">
+      <button class="btn secondary small" id="fmtBoldBtn"><b>B</b></button>
+      <button class="btn secondary small" id="fmtItalicBtn"><i>I</i></button>
+      <button class="btn secondary small" id="fmtUnderlineBtn"><u>U</u></button>
+      <button class="btn secondary small" id="fmtBulletBtn" title="Bullet list">• List</button>
+      <button class="btn secondary small" id="fmtNumberBtn" title="Numbered list">1. List</button>
+      <button class="btn ghost small" id="fmtClearBtn">Clear formatting</button>
+    </div>
+
+    <div class="format-editor" id="formatEditor" contenteditable="true" data-placeholder="Type your text here, then select words to style them…"></div>
+
+    <div class="case-footer">
+      <span class="counts" id="formatHint">Select some text, then click a style button.</span>
+      <button class="btn" id="fmtCopyBtn">Copy</button>
+    </div>
+  </div>
+
+  <!-- ============ CASE CONVERTER ============ -->
+  <div class="card">
+    <h2>Case Converter</h2>
+    <p class="sub">Paste text, pick a case. Copies straight to your clipboard.</p>
+
+    <textarea id="caseInput" placeholder="Type or paste text here…"></textarea>
+
+    <div class="case-grid">
+      <button class="btn secondary small" data-case="upper">UPPERCASE</button>
+      <button class="btn secondary small" data-case="lower">lowercase</button>
+      <button class="btn secondary small" data-case="title">Title Case</button>
+      <button class="btn secondary small" data-case="sentence">Sentence case</button>
+      <button class="btn secondary small" data-case="camel">camelCase</button>
+      <button class="btn secondary small" data-case="pascal">PascalCase</button>
+      <button class="btn secondary small" data-case="snake">snake_case</button>
+      <button class="btn secondary small" data-case="kebab">kebab-case</button>
+      <button class="btn secondary small" data-case="alt">aLtErNaTiNg</button>
+    </div>
+
+    <div class="case-footer">
+      <span class="counts" id="caseCounts">0 words · 0 characters</span>
+      <button class="btn" id="copyBtn">Copy</button>
+    </div>
+  </div>
+
+  <!-- ============ REMOVE DUPLICATES ============ -->
+  <div class="card">
+    <h2>Remove Duplicates</h2>
+    <p class="sub">Paste a list, one item per line. Duplicates get removed, keeping the first occurrence.</p>
+
+    <textarea id="dedupeInput" placeholder="Paste your list here, one item per line…"></textarea>
+
+    <div class="dedupe-options">
+      <label><input type="checkbox" id="dedupeCaseSensitive"> Case-sensitive</label>
+      <label><input type="checkbox" id="dedupeTrim" checked> Trim extra spaces</label>
+      <label><input type="checkbox" id="dedupeIgnoreBlank" checked> Ignore blank lines</label>
+      <label><input type="checkbox" id="dedupeSort"> Sort A → Z</label>
+    </div>
+
+    <div class="dedupe-options" style="margin-top:10px;">
+      <label><input type="checkbox" id="dedupeDelimiterCheck"> Split combined names into separate lines first</label>
+      <span style="display:flex; align-items:center; gap:6px;">
+        delimiter:
+        <input type="text" id="dedupeDelimiterValue" value="/" style="width:44px; padding:4px 6px; text-align:center;">
+        e.g. "Jane / Mary" + "Jane / John" → Jane, Mary, John
+      </span>
+    </div>
+
+    <div class="folio-actions">
+      <button class="btn" id="dedupeBtn">Remove duplicates</button>
+      <span class="status-line" id="dedupeStatus"></span>
+    </div>
+
+    <textarea id="dedupeOutput" readonly placeholder="Your deduplicated list will appear here…" style="margin-top:14px;"></textarea>
+
+    <div class="warning-box" id="dedupeRelatedBox" style="display:none;"></div>
+
+    <div class="case-footer">
+      <span class="counts" id="dedupeCounts"></span>
+      <button class="btn" id="dedupeCopyBtn">Copy</button>
+    </div>
+  </div>
+
+  <!-- ============ EXTRACT NAMES FROM EMAILS ============ -->
+  <div class="card">
+    <h2>Extract Names from Emails</h2>
+    <p class="sub">Paste a list of email addresses. Get back just the names — one per line, no dots, underscores or numbers.</p>
+
+    <textarea id="extractInput" placeholder="jane.doe@company.com, mary_smith@company.com; john-tan01@company.com…"></textarea>
+
+    <div class="dedupe-options" style="margin-top:10px;">
+      <span style="display:flex; align-items:center; gap:6px;">
+        Also split by
+        <input type="text" id="extractDelimiter" value="" placeholder="e.g. |" style="width:44px; padding:4px 6px; text-align:center;">
+        <span style="color:var(--text-faint);">(commas, semicolons &amp; new lines are always split)</span>
+      </span>
+      <label><input type="checkbox" id="extractRemoveNumbers" checked> Remove numbers</label>
+      <label><input type="checkbox" id="extractTitleCase" checked> Title Case</label>
+      <label><input type="checkbox" id="extractRemoveDupes" checked> Remove duplicate names</label>
+    </div>
+
+    <div class="folio-actions">
+      <button class="btn" id="extractBtn">Extract names</button>
+      <span class="status-line" id="extractStatus"></span>
+    </div>
+
+    <textarea id="extractOutput" readonly placeholder="Extracted names will appear here…" style="margin-top:14px;"></textarea>
+
+    <div class="case-footer">
+      <span class="counts" id="extractCounts"></span>
+      <button class="btn" id="extractCopyBtn">Copy</button>
+    </div>
+  </div>
+
+  <!-- ============ REORDER NAMES ============ -->
+  <div class="card">
+    <h2>Reorder Names</h2>
+    <p class="sub">Flip names between "Surname, First Name" and "First Name Surname" — one per line.</p>
+
+    <textarea id="reorderInput" placeholder="Smith Jones, Jane&#10;John Tan&#10;…"></textarea>
+
+    <div class="radio-row" style="margin-top:14px;">
+      <label><input type="radio" name="reorderMode" value="auto" checked> Flip each line automatically</label>
+      <label><input type="radio" name="reorderMode" value="firstlast"> Always → First Last</label>
+      <label><input type="radio" name="reorderMode" value="lastfirst"> Always → Last, First</label>
+    </div>
+
+    <div class="folio-actions">
+      <button class="btn" id="reorderBtn">Reorder</button>
+      <span class="status-line" id="reorderStatus"></span>
+    </div>
+
+    <textarea id="reorderOutput" readonly placeholder="Reordered names will appear here…" style="margin-top:14px;"></textarea>
+
+    <div class="case-footer">
+      <span class="counts" id="reorderCounts"></span>
+      <button class="btn" id="reorderCopyBtn">Copy</button>
+    </div>
+  </div>
+
+  </div><!-- end tab-pane extract-data -->
+
+  <!-- ============ TAB: CALCULATORS ============ -->
+  <div class="tab-pane" data-tab="calculators">
+
+  <!-- ============ DAY CALCULATOR ============ -->
+  <div class="card">
+    <h2>Working Days Converter</h2>
+    <p class="sub">Date math against a combined Selangor + KL public holiday calendar for 2026.</p>
+
+    <div class="tabs">
+      <button class="tab active" data-pane="paneAdd">Add / subtract</button>
+      <button class="tab" data-pane="paneBetween">Days between</button>
+      <button class="tab" data-pane="paneHours">Hours → Days</button>
+      <button class="tab" data-pane="paneHolidays">Holidays</button>
+    </div>
+
+    <div class="pane active" id="paneAdd">
+      <div class="field-row">
+        <div class="field">
+          <label>Start date</label>
+          <input type="date" id="addStart">
+        </div>
+        <div class="field">
+          <label>Number of days</label>
+          <input type="number" id="addDays" value="10" min="0">
+        </div>
+      </div>
+      <div class="radio-row">
+        <label><input type="radio" name="addDir" value="add" checked> Add</label>
+        <label><input type="radio" name="addDir" value="sub"> Subtract</label>
+      </div>
+      <div class="checkbox-row">
+        <label><input type="checkbox" id="addBusiness"> Count business days only (skip weekends &amp; holidays)</label>
+      </div>
+      <button class="btn" id="calcAddBtn">Calculate</button>
+      <div class="result-box" id="addResult" style="display:none;"></div>
+    </div>
+
+    <div class="pane" id="paneBetween">
+      <div class="field-row">
+        <div class="field">
+          <label>From</label>
+          <input type="date" id="betweenFrom">
+        </div>
+        <div class="field">
+          <label>To</label>
+          <input type="date" id="betweenTo">
+        </div>
+      </div>
+      <button class="btn" id="calcBetweenBtn">Calculate</button>
+      <div class="result-box" id="betweenResult" style="display:none;"></div>
+    </div>
+
+    <div class="pane" id="paneHours">
+      <div class="field-row">
+        <div class="field">
+          <label>Training hours</label>
+          <input type="number" id="hoursInput" value="20" min="0" step="0.5">
+        </div>
+      </div>
+      <div class="result-box" id="hoursResult"></div>
+      <p class="hours-per-day-note">
+        Assuming
+        <input type="number" id="hoursPerDay" value="8" min="0.5" step="0.5">
+        hours = 1 working day
+      </p>
+    </div>
+
+    <div class="pane" id="paneHolidays">
+      <div class="holiday-list" id="holidayList"></div>
+      <div class="custom-holiday-form">
+        <div class="field">
+          <label>Add a custom date</label>
+          <input type="date" id="customDate">
+        </div>
+        <div class="field">
+          <label>Label</label>
+          <input type="text" id="customLabel" placeholder="e.g. Office closure">
+        </div>
+        <button class="btn secondary" id="addCustomBtn">Add</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ TIMEZONE CONVERTER ============ -->
+  <div class="card">
+    <h2>Timezone Converter</h2>
+    <p class="sub">Malaysia time to anywhere. Select timezones to compare.</p>
+
+    <div class="field-row">
+      <div class="field">
+        <label>Time</label>
+        <div style="display:flex; gap:6px;">
+          <input type="time" id="tzTime" style="flex:1; min-width:0;">
+          <select id="tzOrigin" style="flex:1; min-width:0;"></select>
+        </div>
+      </div>
+      <div class="field">
+        <label>Date (optional)</label>
+        <input type="date" id="tzDate">
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Select timezones to compare</label>
+      <div id="tzCheckboxes" style="display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; margin-top:8px; max-height:200px; overflow-y:auto; padding-right:6px;"></div>
+    </div>
+
+    <div id="tzResults" style="margin-top:14px;"></div>
+  </div>
+
+  <!-- ============ CURRENCY CONVERTER ============ -->
+  <div class="card">
+    <h2>Currency Converter</h2>
+    <p class="sub">Calculate an amount, then add it as a row to compare across currencies. Daily reference rates (ECB via Frankfurter).</p>
+
+    <button class="calc-toggle" id="calcToggleBtn" type="button">Open calculator</button>
+
+    <div class="calc-wrap" id="calcWrap">
+      <div class="calc-display">
+        <div class="calc-preview" id="calcPreview"></div>
+        <div class="calc-current" id="calcDisplay">0</div>
+      </div>
+      <div class="calc-grid">
+        <button class="calc-btn clear" data-calc="clear" type="button">C</button>
+        <button class="calc-btn" data-calc="back" type="button">⌫</button>
+        <button class="calc-btn op" data-calc="op" data-op="÷" type="button">÷</button>
+        <button class="calc-btn op" data-calc="op" data-op="×" type="button">×</button>
+        <button class="calc-btn" data-calc="digit" data-val="7" type="button">7</button>
+        <button class="calc-btn" data-calc="digit" data-val="8" type="button">8</button>
+        <button class="calc-btn" data-calc="digit" data-val="9" type="button">9</button>
+        <button class="calc-btn op" data-calc="op" data-op="-" type="button">−</button>
+        <button class="calc-btn" data-calc="digit" data-val="4" type="button">4</button>
+        <button class="calc-btn" data-calc="digit" data-val="5" type="button">5</button>
+        <button class="calc-btn" data-calc="digit" data-val="6" type="button">6</button>
+        <button class="calc-btn op" data-calc="op" data-op="+" type="button">+</button>
+        <button class="calc-btn" data-calc="digit" data-val="1" type="button">1</button>
+        <button class="calc-btn" data-calc="digit" data-val="2" type="button">2</button>
+        <button class="calc-btn" data-calc="digit" data-val="3" type="button">3</button>
+        <button class="calc-btn equals" data-calc="equals" type="button">=</button>
+        <button class="calc-btn calc-zero" data-calc="digit" data-val="0" type="button">0</button>
+        <button class="calc-btn" data-calc="digit" data-val="." type="button">.</button>
+      </div>
+    </div>
+
+    <div class="field-row" style="margin-top:12px;">
+      <div class="field">
+        <label>Amount</label>
+        <input type="number" id="fxAmount" value="1" min="0" step="any">
+      </div>
+    </div>
+
+    <div class="fx-row" style="margin-bottom:12px;">
+      <div class="field">
+        <label>From</label>
+        <select id="fxFrom"></select>
+      </div>
+      <button class="btn ghost fx-swap" id="fxSwapBtn" title="Swap currencies">⇄</button>
+      <div class="field">
+        <label>To</label>
+        <select id="fxTo"></select>
+      </div>
+    </div>
+
+    <div class="result-box" id="fxPreview">Select currencies to see conversion</div>
+
+    <button class="btn" id="fxAddRowBtn" style="margin-top:10px; width:100%;">+ Add conversion</button>
+
+    <div id="fxRows" style="margin-top:14px;"></div>
+
+    <p class="status-line" id="fxStatus" style="margin-top:10px;"></p>
+  </div>
+
+  </div><!-- end tab-pane calculators -->
+
+</div>
+
+<script>
+/* ============================================================
+   FOLIO — document merger
+   ============================================================ */
+(function(){
+  const dropZone = document.getElementById('dropZone');
+  const fileInput = document.getElementById('fileInput');
+  const fileListEl = document.getElementById('fileList');
+  const folioActions = document.getElementById('folioActions');
+  const mergeBtn = document.getElementById('mergeBtn');
+  const clearBtn = document.getElementById('clearBtn');
+  const folioStatus = document.getElementById('folioStatus');
+  const folioWarnings = document.getElementById('folioWarnings');
+
+  let files = []; // {file, id}
+  let idCounter = 0;
+
+  function extOf(name){
+    const m = name.toLowerCase().match(/\.([a-z0-9]+)$/);
+    return m ? m[1] : '';
+  }
+  function badgeFor(ext){
+    if(ext==='pdf') return 'PDF';
+    if(ext==='xlsx'||ext==='xls') return 'XLS';
+    if(ext==='msg') return 'MSG';
+    if(ext==='png') return 'PNG';
+    if(ext==='jpg'||ext==='jpeg') return 'JPG';
+    return ext.toUpperCase() || '?';
+  }
+
+  let draggedIndex = null;
+
+  function renderList(){
+    fileListEl.innerHTML = '';
+    files.forEach((entry, i) => {
+      const row = document.createElement('div');
+      row.className = 'file-row';
+      row.draggable = true;
+      const ext = extOf(entry.file.name);
+      row.innerHTML = `
+        <span class="drag-handle" title="Drag to reorder">⠿</span>
+        <span class="file-badge">${badgeFor(ext)}</span>
+        <span class="file-name">${entry.file.name}</span>
+        <div class="file-actions">
+          <button class="icon-btn up" title="Move up">↑</button>
+          <button class="icon-btn down" title="Move down">↓</button>
+          <button class="icon-btn remove" title="Remove">✕</button>
+        </div>`;
+      row.querySelector('.up').onclick = () => { if(i>0){ [files[i-1],files[i]]=[files[i],files[i-1]]; renderList(); } };
+      row.querySelector('.down').onclick = () => { if(i<files.length-1){ [files[i+1],files[i]]=[files[i],files[i+1]]; renderList(); } };
+      row.querySelector('.remove').onclick = () => { files.splice(i,1); renderList(); };
+
+      row.addEventListener('dragstart', e => {
+        draggedIndex = i;
+        row.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', String(i));
+      });
+      row.addEventListener('dragend', () => {
+        row.classList.remove('dragging');
+        draggedIndex = null;
+        fileListEl.querySelectorAll('.file-row').forEach(r => r.classList.remove('drag-over'));
+      });
+      row.addEventListener('dragover', e => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        row.classList.add('drag-over');
+      });
+      row.addEventListener('dragleave', () => {
+        row.classList.remove('drag-over');
+      });
+      row.addEventListener('drop', e => {
+        e.preventDefault();
+        row.classList.remove('drag-over');
+        if(draggedIndex === null || draggedIndex === i) return;
+        const [moved] = files.splice(draggedIndex, 1);
+        files.splice(i, 0, moved);
+        renderList();
+      });
+
+      fileListEl.appendChild(row);
+    });
+    folioActions.style.display = files.length ? 'flex' : 'none';
+    folioStatus.textContent = '';
+  }
+
+  function addFiles(fileArr){
+    for(const f of fileArr){ files.push({file:f, id:idCounter++}); }
+    renderList();
+  }
+
+  dropZone.addEventListener('click', () => fileInput.click());
+  fileInput.addEventListener('change', e => { addFiles(Array.from(e.target.files)); fileInput.value=''; });
+  ['dragover','dragenter'].forEach(evt => dropZone.addEventListener(evt, e => { e.preventDefault(); dropZone.classList.add('drag'); }));
+  ['dragleave','drop'].forEach(evt => dropZone.addEventListener(evt, e => { e.preventDefault(); dropZone.classList.remove('drag'); }));
+  dropZone.addEventListener('drop', e => { addFiles(Array.from(e.dataTransfer.files)); });
+
+  clearBtn.addEventListener('click', () => { files = []; renderList(); folioWarnings.style.display='none'; });
+
+  // ---------- CFB (compound file binary) reader for .msg ----------
+  class CFBReader{
+    constructor(buf){
+      this.view = new DataView(buf);
+      this.bytes = new Uint8Array(buf);
+      this._parseHeader();
+      this._buildFAT();
+      this._readDirectory();
+      this._buildMiniFAT();
+    }
+    _parseHeader(){
+      const v = this.view;
+      this.sectorSize = 1 << v.getUint16(30, true);
+      this.miniSectorSize = 1 << v.getUint16(32, true);
+      this.numFATSectors = v.getUint32(44, true);
+      this.dirStart = v.getUint32(48, true);
+      this.miniStreamCutoff = v.getUint32(56, true);
+      this.miniFATStart = v.getUint32(60, true);
+      this.numMiniFATSectors = v.getUint32(64, true);
+      this.difatStart = v.getUint32(68, true);
+      this.numDifatSectors = v.getUint32(72, true);
+    }
+    _sectorOffset(s){ return (s+1)*this.sectorSize; }
+    _buildFAT(){
+      const END=0xFFFFFFFE;
+      let fatSectorNums = [];
+      for(let i=0;i<109;i++){
+        const loc = this.view.getUint32(76+i*4, true);
+        if(loc===0xFFFFFFFF || loc===0xFFFFFFFE) break;
+        fatSectorNums.push(loc);
+      }
+      let difatSector = this.difatStart;
+      let guard=0;
+      while(difatSector!==0xFFFFFFFE && difatSector!==0xFFFFFFFF && guard<10000){
+        const off = this._sectorOffset(difatSector);
+        const entriesPerSector = this.sectorSize/4 - 1;
+        for(let i=0;i<entriesPerSector;i++){
+          const loc = this.view.getUint32(off+i*4, true);
+          if(loc===0xFFFFFFFF || loc===0xFFFFFFFE) break;
+          fatSectorNums.push(loc);
+        }
+        difatSector = this.view.getUint32(off+entriesPerSector*4, true);
+        guard++;
+      }
+      const entriesPerFatSector = this.sectorSize/4;
+      this.fat = [];
+      for(const secNum of fatSectorNums){
+        const off = this._sectorOffset(secNum);
+        for(let i=0;i<entriesPerFatSector;i++){
+          this.fat[secNum*entriesPerFatSector+i] = this.view.getUint32(off+i*4, true);
+        }
+      }
+    }
+    _getChain(start, fatArr){
+      const END=0xFFFFFFFE;
+      let chain=[]; let s=start; let guard=0;
+      while(s!==undefined && s!==END && s>=0 && guard<200000){
+        chain.push(s);
+        s=fatArr[s];
+        guard++;
+      }
+      return chain;
+    }
+    _readSectors(chain, sectorSize){
+      const out = new Uint8Array(chain.length*sectorSize);
+      chain.forEach((s,i) => {
+        const off=(s+1)*sectorSize;
+        out.set(this.bytes.subarray(off, off+sectorSize), i*sectorSize);
+      });
+      return out;
+    }
+    _readDirectory(){
+      const chain = this._getChain(this.dirStart, this.fat);
+      const raw = this._readSectors(chain, this.sectorSize);
+      const dv = new DataView(raw.buffer);
+      const count = Math.floor(raw.length/128);
+      this.entries = [];
+      for(let i=0;i<count;i++){
+        const off = i*128;
+        const nameLen = dv.getUint16(off+64, true);
+        let name='';
+        for(let c=0;c<Math.max(0,nameLen-2);c+=2){
+          name += String.fromCharCode(dv.getUint16(off+c, true));
+        }
+        const type = dv.getUint8(off+66);
+        const start = dv.getUint32(off+116, true);
+        const sizeLow = dv.getUint32(off+120, true);
+        const sizeHigh = dv.getUint32(off+124, true);
+        const size = sizeHigh*4294967296 + sizeLow;
+        if(type===5) this.rootEntry = {name,type,start,size};
+        this.entries.push({name,type,start,size});
+      }
+    }
+    _buildMiniFAT(){
+      if(!this.rootEntry || this.numMiniFATSectors===0){ this.miniFAT=[]; this.rootData=new Uint8Array(0); return; }
+      const chain = this._getChain(this.miniFATStart, this.fat);
+      const raw = this._readSectors(chain, this.sectorSize);
+      const dv = new DataView(raw.buffer);
+      this.miniFAT = [];
+      for(let i=0;i<raw.length/4;i++){ this.miniFAT[i] = dv.getUint32(i*4, true); }
+      const rootChain = this._getChain(this.rootEntry.start, this.fat);
+      this.rootData = this._readSectors(rootChain, this.sectorSize);
+    }
+    getStreamData(entry){
+      if(entry.size===0) return new Uint8Array(0);
+      if(entry.size >= this.miniStreamCutoff || !this.rootEntry){
+        const chain = this._getChain(entry.start, this.fat);
+        return this._readSectors(chain, this.sectorSize).subarray(0, entry.size);
+      } else {
+        const chain = this._getChain(entry.start, this.miniFAT);
+        const out = new Uint8Array(chain.length*this.miniSectorSize);
+        chain.forEach((s,i) => {
+          const off = s*this.miniSectorSize;
+          out.set(this.rootData.subarray(off, off+this.miniSectorSize), i*this.miniSectorSize);
+        });
+        return out.subarray(0, entry.size);
+      }
+    }
+  }
+
+  function decodeUTF16LE(bytes){
+    try{ return new TextDecoder('utf-16le').decode(bytes).replace(/\u0000+$/,''); }
+    catch(e){ return ''; }
+  }
+  function decodeAnsi(bytes){
+    try{ return new TextDecoder('windows-1252').decode(bytes).replace(/\u0000+$/,''); }
+    catch(e){ return ''; }
+  }
+
+  function parseMsg(arrayBuffer){
+    const sig = new Uint8Array(arrayBuffer.slice(0,8));
+    const expected = [0xD0,0xCF,0x11,0xE0,0xA1,0xB1,0x1A,0xE1];
+    for(let i=0;i<8;i++){ if(sig[i]!==expected[i]) throw new Error('Not a valid .msg (CFB signature mismatch)'); }
+    const cfb = new CFBReader(arrayBuffer);
+    const props = {};
+    for(const entry of cfb.entries){
+      if(entry.type!==2) continue;
+      const m = entry.name.match(/^__substg1\.0_([0-9A-Fa-f]{4})([0-9A-Fa-f]{4})$/);
+      if(!m) continue;
+      const tag = m[1].toUpperCase();
+      const type = m[2].toUpperCase();
+      if(type!=='001F' && type!=='001E') continue;
+      const data = cfb.getStreamData(entry);
+      const val = type==='001F' ? decodeUTF16LE(data) : decodeAnsi(data);
+      if(!props[tag]) props[tag] = val;
+    }
+    return {
+      subject: props['0037'] || '(no subject)',
+      body: props['1000'] || props['1013'] || '(no body text found)',
+      from: props['0C1A'] || props['0C1F'] || '',
+      to: props['0E04'] || ''
+    };
+  }
+
+  function sanitizePdfText(text){
+    return String(text)
+      .replace(/\t/g, '    ')
+      .replace(/[\u201C\u201D]/g, '"')
+      .replace(/[\u2018\u2019]/g, "'")
+      .replace(/[\u2014\u2013]/g, "-")
+      .replace(/\u2026/g, "...")
+      .replace(/\u2022/g, "*")
+      .replace(/\u00A0/g, " ")
+      .replace(/[^\x0A\x0D\x20-\x7E]/g, "");
+  }
+
+  function wrapText(text, font, size, maxWidth){
+    const words = text.split(/ +/);
+    let lines=[]; let cur='';
+    for(const w of words){
+      const test = cur ? cur+' '+w : w;
+      if(font.widthOfTextAtSize(test, size) > maxWidth && cur){
+        lines.push(cur); cur=w;
+      } else cur = test;
+    }
+    lines.push(cur);
+    return lines;
+  }
+
+  async function addMsgPages(pdfDoc, font, boldFont, info, filename){
+    const pageWidth=595.28, pageHeight=841.89, margin=50;
+    const usableWidth = pageWidth-margin*2;
+    const lineHeight = 14;
+    filename = sanitizePdfText(filename);
+    info.subject = sanitizePdfText(info.subject || '');
+    info.from = sanitizePdfText(info.from || '');
+    info.to = sanitizePdfText(info.to || '');
+    let bodyLines = [];
+    const paragraphs = sanitizePdfText(info.body || '').split(/\r?\n/);
+    for(const p of paragraphs){
+      if(p.trim()===''){ bodyLines.push(''); continue; }
+      bodyLines.push(...wrapText(p, font, 10, usableWidth));
+    }
+    let idx=0, first=true;
+    while(idx < bodyLines.length || first){
+      const page = pdfDoc.addPage([pageWidth, pageHeight]);
+      let y = pageHeight - margin;
+      if(first){
+        page.drawText(filename, {x:margin, y, size:13, font:boldFont});
+        y -= 20;
+        page.drawText('Subject: ' + info.subject, {x:margin, y, size:10, font:boldFont});
+        y -= 15;
+        if(info.from){ page.drawText('From: ' + info.from, {x:margin, y, size:9, font}); y -= 13; }
+        if(info.to){ page.drawText('To: ' + info.to, {x:margin, y, size:9, font}); y -= 13; }
+        y -= 8;
+        page.drawLine({start:{x:margin,y}, end:{x:pageWidth-margin,y}, thickness:0.7, color:PDFLib.rgb(0.75,0.75,0.75)});
+        y -= 18;
+        first = false;
+      }
+      while(idx < bodyLines.length && y > margin+lineHeight){
+        page.drawText(bodyLines[idx] || '', {x:margin, y, size:10, font});
+        y -= lineHeight; idx++;
+      }
+      if(idx >= bodyLines.length) break;
+    }
+  }
+
+  async function addSheetPages(pdfDoc, font, boldFont, title, rows){
+    const pageWidth=841.89, pageHeight=595.28, margin=30; // landscape
+    const usableWidth = pageWidth-margin*2;
+    const usableHeight = pageHeight-margin*2-36;
+    const rowHeight = 16;
+    const maxCols = Math.max(1, ...rows.map(r=>r.length));
+    const minColWidth = 65;
+    const colsPerPage = Math.max(1, Math.floor(usableWidth/minColWidth));
+    const rowsPerPage = Math.max(1, Math.floor(usableHeight/rowHeight));
+
+    function sanitizeCell(v){
+      return sanitizePdfText(v).replace(/[\r\n]+/g, ' ').trim();
+    }
+
+    for(let colStart=0; colStart<maxCols; colStart+=colsPerPage){
+      const colEnd = Math.min(maxCols, colStart+colsPerPage);
+      const numCols = colEnd-colStart;
+      const cw = usableWidth/numCols;
+      for(let rowStart=0; rowStart<rows.length; rowStart+=rowsPerPage){
+        const rowEnd = Math.min(rows.length, rowStart+rowsPerPage);
+        const page = pdfDoc.addPage([pageWidth, pageHeight]);
+        let y = pageHeight - margin;
+        let heading = title;
+        if(maxCols>colsPerPage) heading += ` (cols ${colStart+1}-${colEnd})`;
+        if(rows.length>rowsPerPage) heading += ` - rows ${rowStart+1}-${rowEnd}`;
+        page.drawText(sanitizeCell(heading), {x:margin, y, size:11, font:boldFont});
+        y -= 22;
+        for(let r=rowStart; r<rowEnd; r++){
+          const rowData = rows[r] || [];
+          page.drawRectangle({x:margin, y:y-rowHeight+4, width:usableWidth, height:rowHeight, borderColor:PDFLib.rgb(0.82,0.82,0.82), borderWidth:0.5});
+          let x = margin;
+          for(let c=colStart; c<colEnd; c++){
+            const raw = sanitizeCell(rowData[c]!=null ? String(rowData[c]) : '');
+            const cell = raw.length>16 ? raw.slice(0,15)+'...' : raw;
+            page.drawText(cell, {x:x+4, y:y-rowHeight+8, size:8, font: r===0?boldFont:font, color:PDFLib.rgb(0.15,0.15,0.15)});
+            if(c>colStart) page.drawLine({start:{x,y:y+4}, end:{x,y:y-rowHeight+4}, thickness:0.5, color:PDFLib.rgb(0.85,0.85,0.85)});
+            x += cw;
+          }
+          y -= rowHeight;
+        }
+      }
+    }
+  }
+
+  async function mergeAll(){
+    if(!files.length) return;
+    mergeBtn.disabled = true;
+    folioWarnings.style.display='none';
+    const warnings = [];
+    const pdfDoc = await PDFLib.PDFDocument.create();
+    const font = await pdfDoc.embedFont(PDFLib.StandardFonts.Helvetica);
+    const boldFont = await pdfDoc.embedFont(PDFLib.StandardFonts.HelveticaBold);
+
+    for(let i=0;i<files.length;i++){
+      const {file} = files[i];
+      folioStatus.textContent = `Processing ${i+1} of ${files.length}: ${file.name}`;
+      const ext = extOf(file.name);
+      try{
+        if(ext==='pdf'){
+          const bytes = await file.arrayBuffer();
+          const src = await PDFLib.PDFDocument.load(bytes, {ignoreEncryption:true});
+          const pages = await pdfDoc.copyPages(src, src.getPageIndices());
+          pages.forEach(p => pdfDoc.addPage(p));
+        } else if(ext==='png' || ext==='jpg' || ext==='jpeg'){
+          const bytes = await file.arrayBuffer();
+          const img = ext==='png' ? await pdfDoc.embedPng(bytes) : await pdfDoc.embedJpg(bytes);
+          const maxW = 595.28-60, maxH = 841.89-60;
+          const scale = Math.min(maxW/img.width, maxH/img.height, 1);
+          const w = img.width*scale, h = img.height*scale;
+          const page = pdfDoc.addPage([595.28, 841.89]);
+          page.drawImage(img, {x:(595.28-w)/2, y:(841.89-h)/2, width:w, height:h});
+        } else if(ext==='xlsx' || ext==='xls'){
+          const bytes = await file.arrayBuffer();
+          const wb = XLSX.read(bytes, {type:'array'});
+          for(const sheetName of wb.SheetNames){
+            const sheet = wb.Sheets[sheetName];
+            const rows = XLSX.utils.sheet_to_json(sheet, {header:1, defval:''});
+            await addSheetPages(pdfDoc, font, boldFont, `${file.name} — ${sheetName}`, rows.length ? rows : [['(empty sheet)']]);
+          }
+        } else if(ext==='msg'){
+          const bytes = await file.arrayBuffer();
+          const info = parseMsg(bytes);
+          await addMsgPages(pdfDoc, font, boldFont, info, file.name);
+        } else {
+          warnings.push(`${file.name}: format not supported, skipped.`);
+        }
+      } catch(err){
+        warnings.push(`${file.name}: couldn't be processed (${err.message}).`);
+      }
+    }
+
+    if(pdfDoc.getPageCount()===0){
+      folioStatus.textContent = 'Nothing could be merged.';
+      mergeBtn.disabled = false;
+      if(warnings.length){ folioWarnings.style.display='block'; folioWarnings.innerHTML = warnings.join('<br>'); }
+      return;
+    }
+
+    const mergedBytes = await pdfDoc.save();
+    const blob = new Blob([mergedBytes], {type:'application/pdf'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'merged.pdf';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+
+    folioStatus.textContent = `Done — merged ${files.length} file(s) into ${pdfDoc.getPageCount()} page(s).`;
+    mergeBtn.disabled = false;
+    if(warnings.length){
+      folioWarnings.style.display='block';
+      folioWarnings.innerHTML = warnings.join('<br>');
+    }
+  }
+
+  mergeBtn.addEventListener('click', mergeAll);
+})();
+
+
+/* ============================================================
+   LEAFLET — PDF page picker
+   ============================================================ */
+(function(){
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+  const dropZone   = document.getElementById('leafletDrop');
+  const fileInput  = document.getElementById('leafletInput');
+  const workspace  = document.getElementById('leafletWorkspace');
+  const grid       = document.getElementById('leafletGrid');
+  const downloadBtn= document.getElementById('leafletDownloadBtn');
+  const statusEl   = document.getElementById('leafletStatus');
+
+  let originalBytes = null;
+  // pageOrder: array of 0-based original page indices, in current display order
+  let pageOrder = [];
+
+  // ---- drag state ----
+  let dragSrcIdx = null; // index in pageOrder being dragged
+
+  function updateDownloadBtn(){
+    const n = pageOrder.length;
+    downloadBtn.disabled = n === 0;
+    downloadBtn.textContent = n === 0 ? 'No pages remaining' : `Download PDF (${n} page${n===1?'':'s'})`;
+  }
+
+  function createThumb(origIdx, orderPos, canvas){
+    const thumb = document.createElement('div');
+    thumb.className = 'leaflet-thumb';
+    thumb.dataset.origIdx = origIdx;
+    thumb.draggable = true;
+
+    thumb.appendChild(canvas);
+
+    const pageNum = document.createElement('span');
+    pageNum.className = 'leaflet-page-num';
+    pageNum.textContent = `p.${origIdx + 1}`;
+    thumb.appendChild(pageNum);
+
+    const delBtn = document.createElement('span');
+    delBtn.className = 'leaflet-del-btn';
+    delBtn.textContent = '✕';
+    delBtn.title = 'Remove page';
+    delBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      const pos = pageOrder.indexOf(origIdx);
+      if(pos > -1) pageOrder.splice(pos, 1);
+      thumb.remove();
+      updateDownloadBtn();
+    });
+    thumb.appendChild(delBtn);
+
+    // ---- drag events ----
+    thumb.addEventListener('dragstart', e => {
+      dragSrcIdx = pageOrder.indexOf(origIdx);
+      thumb.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+    });
+    thumb.addEventListener('dragend', () => {
+      thumb.classList.remove('dragging');
+      grid.querySelectorAll('.leaflet-thumb').forEach(t => t.classList.remove('drag-over'));
+    });
+    thumb.addEventListener('dragover', e => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      grid.querySelectorAll('.leaflet-thumb').forEach(t => t.classList.remove('drag-over'));
+      thumb.classList.add('drag-over');
+    });
+    thumb.addEventListener('dragleave', () => thumb.classList.remove('drag-over'));
+    thumb.addEventListener('drop', e => {
+      e.preventDefault();
+      thumb.classList.remove('drag-over');
+      const targetIdx = pageOrder.indexOf(origIdx);
+      if(dragSrcIdx === null || dragSrcIdx === targetIdx) return;
+      // reorder pageOrder array
+      const [moved] = pageOrder.splice(dragSrcIdx, 1);
+      pageOrder.splice(targetIdx, 0, moved);
+      dragSrcIdx = null;
+      // reorder DOM to match
+      const thumbs = [...grid.querySelectorAll('.leaflet-thumb')];
+      const ordered = pageOrder.map(oi => thumbs.find(t => Number(t.dataset.origIdx) === oi));
+      ordered.forEach(t => grid.appendChild(t));
+    });
+
+    return thumb;
+  }
+
+  async function loadPdf(file){
+    statusEl.textContent = 'Rendering pages…';
+    workspace.style.display = 'block';
+    grid.innerHTML = '';
+    downloadBtn.disabled = true;
+    downloadBtn.textContent = 'Rendering…';
+    pageOrder = [];
+
+    originalBytes = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({data: originalBytes.slice(0)}).promise;
+    const numPages = pdf.numPages;
+
+    for(let i = 1; i <= numPages; i++){
+      const page = await pdf.getPage(i);
+      const viewport = page.getViewport({scale: 0.35});
+      const canvas = document.createElement('canvas');
+      canvas.width = viewport.width;
+      canvas.height = viewport.height;
+      await page.render({canvasContext: canvas.getContext('2d'), viewport}).promise;
+      pageOrder.push(i - 1);
+      grid.appendChild(createThumb(i - 1, i - 1, canvas));
+    }
+    statusEl.textContent = `${numPages} page${numPages===1?'':'s'} loaded.`;
+    updateDownloadBtn();
+  }
+
+  dropZone.addEventListener('click', () => fileInput.click());
+  fileInput.addEventListener('change', e => {
+    if(e.target.files[0]) loadPdf(e.target.files[0]);
+    fileInput.value = '';
+  });
+  ['dragover','dragenter'].forEach(evt => dropZone.addEventListener(evt, e => { e.preventDefault(); dropZone.classList.add('drag'); }));
+  ['dragleave','drop'].forEach(evt => dropZone.addEventListener(evt, e => { e.preventDefault(); dropZone.classList.remove('drag'); }));
+  dropZone.addEventListener('drop', e => {
+    const f = e.dataTransfer.files[0];
+    if(f && f.name.toLowerCase().endsWith('.pdf')) loadPdf(f);
+  });
+
+  downloadBtn.addEventListener('click', async () => {
+    if(!originalBytes || pageOrder.length === 0) return;
+    downloadBtn.disabled = true;
+    statusEl.textContent = 'Building PDF…';
+    try{
+      const srcDoc = await PDFLib.PDFDocument.load(originalBytes.slice(0), {ignoreEncryption:true});
+      const outDoc = await PDFLib.PDFDocument.create();
+      const pages  = await outDoc.copyPages(srcDoc, pageOrder);
+      pages.forEach(p => outDoc.addPage(p));
+      const bytes = await outDoc.save();
+      const blob  = new Blob([bytes], {type:'application/pdf'});
+      const url   = URL.createObjectURL(blob);
+      const a     = document.createElement('a');
+      a.href = url; a.download = 'edited.pdf';
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+      statusEl.textContent = `Done — ${pageOrder.length} page${pageOrder.length===1?'':'s'} saved.`;
+    }catch(err){
+      statusEl.textContent = `Couldn't build the PDF (${err.message}).`;
+    }
+    updateDownloadBtn();
+  });
+})();
+
+/* ============================================================
+   FORMAT TEXT
+   ============================================================ */
+(function(){
+  const editor = document.getElementById('formatEditor');
+  const hint = document.getElementById('formatHint');
+  const copyBtn = document.getElementById('fmtCopyBtn');
+
+  function buildMap(startUpper, startLower, startDigit){
+    const map = {};
+    for(let i=0;i<26;i++){
+      map[String.fromCharCode(65+i)] = String.fromCodePoint(startUpper+i);
+      map[String.fromCharCode(97+i)] = String.fromCodePoint(startLower+i);
+    }
+    if(startDigit!=null){
+      for(let i=0;i<10;i++){
+        map[String.fromCharCode(48+i)] = String.fromCodePoint(startDigit+i);
+      }
+    }
+    return map;
+  }
+
+  const BOLD_MAP = buildMap(0x1D400, 0x1D41A, 0x1D7CE);
+  const ITALIC_MAP = buildMap(0x1D434, 0x1D44E, null);
+  ITALIC_MAP['h'] = '\u210E'; // Unicode has no italic small h; use Planck constant symbol instead
+  const BOLDITALIC_MAP = buildMap(0x1D468, 0x1D482, null); // no dedicated bold-italic digits either
+
+  // reverse lookup: styled char -> {base, bold, italic}
+  const REVERSE = {};
+  function registerMap(map, bold, italic){
+    for(const base in map){ REVERSE[map[base]] = {base, bold, italic}; }
+  }
+  registerMap(BOLD_MAP, true, false);
+  registerMap(ITALIC_MAP, false, true);
+  registerMap(BOLDITALIC_MAP, true, true);
+
+  function tokenize(str){
+    const chars = Array.from(str);
+    const tokens = [];
+    for(const ch of chars){
+      if(ch === '\u0332'){
+        if(tokens.length){
+          tokens[tokens.length-1].underline = true;
+          tokens[tokens.length-1].length += 1;
+        }
+        continue;
+      }
+      const info = REVERSE[ch] || {base: ch, bold:false, italic:false};
+      tokens.push({base: info.base, bold: info.bold, italic: info.italic, underline:false, length: ch.length});
+    }
+    return tokens;
+  }
+
+  function renderTokens(tokens){
+    let out = '';
+    for(const t of tokens){
+      let ch = t.base;
+      if(t.bold && t.italic) ch = BOLDITALIC_MAP[t.base] || BOLD_MAP[t.base] || t.base;
+      else if(t.bold) ch = BOLD_MAP[t.base] || t.base;
+      else if(t.italic) ch = ITALIC_MAP[t.base] || t.base;
+      out += ch;
+      let len = ch.length;
+      if(t.underline){ out += '\u0332'; len += 1; }
+      t.length = len; // keep in sync so offset math after this render stays accurate
+    }
+    return out;
+  }
+
+  function getCaretOffsets(container){
+    const sel = window.getSelection();
+    if(!sel.rangeCount) return null;
+    const range = sel.getRangeAt(0);
+    if(!container.contains(range.startContainer) || !container.contains(range.endContainer)) return null;
+    const pre = range.cloneRange();
+    pre.selectNodeContents(container);
+    pre.setEnd(range.startContainer, range.startOffset);
+    const start = pre.toString().length;
+    const end = start + range.toString().length;
+    return {start, end};
+  }
+
+  function setSelectionByOffsets(container, start, end){
+    const textNode = container.firstChild;
+    if(!textNode){ return; }
+    const len = textNode.length || 0;
+    const range = document.createRange();
+    range.setStart(textNode, Math.max(0, Math.min(start, len)));
+    range.setEnd(textNode, Math.max(0, Math.min(end, len)));
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+  }
+
+  function offsetsToTokenRange(tokens, start, end){
+    let cum = 0;
+    let tStart = tokens.length, tEnd = 0;
+    for(let i=0;i<tokens.length;i++){
+      const s = cum, e = cum + tokens[i].length;
+      if(start < e && start >= s) tStart = Math.min(tStart, i);
+      if(end > s) tEnd = i+1;
+      cum = e;
+    }
+    if(start >= cum) tStart = tokens.length;
+    if(tEnd > tokens.length) tEnd = tokens.length;
+    if(tStart > tEnd) tStart = tEnd;
+    return {tStart, tEnd};
+  }
+
+  function tokenRangeToOffsets(tokens, tStart, tEnd){
+    let cum = 0, start = null, end = null;
+    for(let i=0;i<tokens.length;i++){
+      if(i === tStart) start = cum;
+      cum += tokens[i].length;
+      if(i === tEnd-1) end = cum;
+    }
+    if(start === null) start = cum;
+    if(end === null) end = cum;
+    return {start, end};
+  }
+
+  function applyStyle(styleName){
+    editor.focus();
+    const offsets = getCaretOffsets(editor);
+    if(!offsets || offsets.start === offsets.end){
+      hint.textContent = 'Select some text first, then click a style button.';
+      return;
+    }
+    const tokens = tokenize(editor.textContent);
+    const {tStart, tEnd} = offsetsToTokenRange(tokens, offsets.start, offsets.end);
+    if(tStart >= tEnd) return;
+    const allHave = tokens.slice(tStart, tEnd).every(t => t[styleName]);
+    for(let i=tStart; i<tEnd; i++){ tokens[i][styleName] = !allHave; }
+    editor.textContent = renderTokens(tokens);
+    const newOffsets = tokenRangeToOffsets(tokens, tStart, tEnd);
+    setSelectionByOffsets(editor, newOffsets.start, newOffsets.end);
+    hint.textContent = 'Select more text, or copy the result.';
+  }
+
+  function clearFormatting(){
+    editor.focus();
+    const offsets = getCaretOffsets(editor);
+    const tokens = tokenize(editor.textContent);
+    const range = offsets && offsets.start !== offsets.end
+      ? offsetsToTokenRange(tokens, offsets.start, offsets.end)
+      : {tStart:0, tEnd: tokens.length};
+    for(let i=range.tStart; i<range.tEnd; i++){
+      tokens[i].bold = false; tokens[i].italic = false; tokens[i].underline = false;
+    }
+    editor.textContent = renderTokens(tokens);
+    const newOffsets = tokenRangeToOffsets(tokens, range.tStart, range.tEnd);
+    setSelectionByOffsets(editor, newOffsets.start, newOffsets.end);
+  }
+
+  function applyListStyle(type){
+    editor.focus();
+    const offsets = getCaretOffsets(editor) || {start:0, end:0};
+    const text = editor.textContent;
+    const start = offsets.start, end = offsets.end;
+
+    // expand the selection out to the full lines it touches
+    const lineStart = text.lastIndexOf('\n', start-1) + 1;
+    const searchPos = end > start ? end-1 : end;
+    const lineEndIdx = text.indexOf('\n', searchPos);
+    const lineEnd = lineEndIdx === -1 ? text.length : lineEndIdx;
+
+    const segment = text.slice(lineStart, lineEnd);
+    const lines = segment.split('\n');
+
+    const bulletRe = /^[•\-*]\s+/;
+    const numberRe = /^\d+\.\s+/;
+    const currentRe = type === 'bullet' ? bulletRe : numberRe;
+
+    const nonEmptyLines = lines.filter(l => l.trim() !== '');
+    const allHavePrefix = nonEmptyLines.length > 0 && nonEmptyLines.every(l => currentRe.test(l));
+
+    let counter = 1;
+    const newLines = lines.map(l => {
+      const stripped = l.replace(bulletRe, '').replace(numberRe, '');
+      if(stripped.trim() === '') return stripped;
+      if(allHavePrefix) return stripped; // toggle off
+      return type === 'bullet' ? `• ${stripped}` : `${counter++}. ${stripped}`;
+    });
+
+    const newSegment = newLines.join('\n');
+    const newText = text.slice(0, lineStart) + newSegment + text.slice(lineEnd);
+    editor.textContent = newText;
+
+    const newEnd = lineStart + newSegment.length;
+    setSelectionByOffsets(editor, lineStart, newEnd);
+    hint.textContent = 'Select more text, or copy the result.';
+  }
+
+  document.getElementById('fmtBoldBtn').addEventListener('click', () => applyStyle('bold'));
+  document.getElementById('fmtItalicBtn').addEventListener('click', () => applyStyle('italic'));
+  document.getElementById('fmtUnderlineBtn').addEventListener('click', () => applyStyle('underline'));
+  document.getElementById('fmtBulletBtn').addEventListener('click', () => applyListStyle('bullet'));
+  document.getElementById('fmtNumberBtn').addEventListener('click', () => applyListStyle('number'));
+  document.getElementById('fmtClearBtn').addEventListener('click', clearFormatting);
+
+  // keep the editor as a single flat text node so offset math stays simple
+  editor.addEventListener('input', () => {
+    const offsets = getCaretOffsets(editor) || {start:0, end:0};
+    const text = editor.textContent;
+    editor.textContent = text;
+    setSelectionByOffsets(editor, offsets.start, offsets.end);
+  });
+
+  // handle Enter as a literal newline instead of a new block element
+  editor.addEventListener('keydown', e => {
+    if(e.key === 'Enter'){
+      e.preventDefault();
+      const sel = window.getSelection();
+      if(!sel.rangeCount) return;
+      const range = sel.getRangeAt(0);
+      range.deleteContents();
+      const node = document.createTextNode('\n');
+      range.insertNode(node);
+      range.setStartAfter(node);
+      range.setEndAfter(node);
+      sel.removeAllRanges();
+      sel.addRange(range);
+      editor.dispatchEvent(new Event('input'));
+      return;
+    }
+    const cmd = e.metaKey || e.ctrlKey;
+    if(cmd){
+      const key = e.key.toLowerCase();
+      if(key === 'b'){ e.preventDefault(); applyStyle('bold'); }
+      else if(key === 'i'){ e.preventDefault(); applyStyle('italic'); }
+      else if(key === 'u'){ e.preventDefault(); applyStyle('underline'); }
+    }
+  });
+
+  copyBtn.addEventListener('click', async () => {
+    const text = editor.textContent;
+    const escaped = text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+    const html = `<span style="font-size:11px;">${escaped}</span>`;
+    try{
+      if(navigator.clipboard && window.ClipboardItem){
+        const item = new ClipboardItem({
+          'text/plain': new Blob([text], {type:'text/plain'}),
+          'text/html': new Blob([html], {type:'text/html'})
+        });
+        await navigator.clipboard.write([item]);
+      } else {
+        await navigator.clipboard.writeText(text);
+      }
+    }catch(e){
+      try{
+        await navigator.clipboard.writeText(text);
+      }catch(e2){
+        const range = document.createRange();
+        range.selectNodeContents(editor);
+        const sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(range);
+        document.execCommand('copy');
+        sel.removeAllRanges();
+      }
+    }
+    const old = copyBtn.textContent;
+    copyBtn.textContent = 'Copied';
+    setTimeout(() => copyBtn.textContent = old, 1200);
+  });
+})();
+
+/* ============================================================
+   CASE CONVERTER
+   ============================================================ */
+(function(){
+  const input = document.getElementById('caseInput');
+  const counts = document.getElementById('caseCounts');
+  const copyBtn = document.getElementById('copyBtn');
+
+  function words(str){ return str.split(/[^A-Za-z0-9]+/).filter(Boolean); }
+
+  const converters = {
+    upper: s => s.toUpperCase(),
+    lower: s => s.toLowerCase(),
+    title: s => s.replace(/\w\S*/g, w => w[0].toUpperCase()+w.slice(1).toLowerCase()),
+    sentence: s => s.toLowerCase().replace(/(^\s*\w|[.!?]\s+\w)/g, c => c.toUpperCase()),
+    camel: s => { const w=words(s); return w.map((word,i)=> i===0? word.toLowerCase() : word[0].toUpperCase()+word.slice(1).toLowerCase()).join(''); },
+    pascal: s => words(s).map(w=>w[0].toUpperCase()+w.slice(1).toLowerCase()).join(''),
+    snake: s => words(s).map(w=>w.toLowerCase()).join('_'),
+    kebab: s => words(s).map(w=>w.toLowerCase()).join('-'),
+    alt: s => s.split('').map((c,i)=> i%2===0? c.toLowerCase() : c.toUpperCase()).join('')
+  };
+
+  function updateCounts(){
+    const val = input.value;
+    const w = val.trim() ? val.trim().split(/\s+/).length : 0;
+    counts.textContent = `${w} word${w===1?'':'s'} · ${val.length} character${val.length===1?'':'s'}`;
+  }
+  input.addEventListener('input', updateCounts);
+  updateCounts();
+
+  document.querySelectorAll('[data-case]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const fn = converters[btn.dataset.case];
+      if(fn){ input.value = fn(input.value); updateCounts(); }
+    });
+  });
+
+  copyBtn.addEventListener('click', async () => {
+    try{
+      await navigator.clipboard.writeText(input.value);
+      const old = copyBtn.textContent;
+      copyBtn.textContent = 'Copied';
+      setTimeout(()=> copyBtn.textContent = old, 1200);
+    }catch(e){
+      input.select();
+      document.execCommand('copy');
+    }
+  });
+})();
+
+/* ============================================================
+   KLANG VALLEY DAY CALCULATOR
+   ============================================================ */
+(function(){
+  const BASE_HOLIDAYS = [
+    {date:'2026-01-01', name:"New Year's Day", region:'Federal'},
+    {date:'2026-02-01', name:'Thaipusam', region:'Selangor'},
+    {date:'2026-02-01', name:'Federal Territory Day', region:'KL'},
+    {date:'2026-02-02', name:'Thaipusam (observed)', region:'Selangor'},
+    {date:'2026-02-03', name:'Federal Territory Day (observed)', region:'KL'},
+    {date:'2026-02-17', name:'Chinese New Year', region:'Federal'},
+    {date:'2026-02-18', name:'Chinese New Year Day 2', region:'Federal'},
+    {date:'2026-03-07', name:'Nuzul Al-Quran', region:'Federal'},
+    {date:'2026-03-21', name:'Hari Raya Aidilfitri', region:'Federal'},
+    {date:'2026-03-22', name:'Hari Raya Aidilfitri Day 2', region:'Federal'},
+    {date:'2026-03-23', name:'Hari Raya Aidilfitri (observed)', region:'Federal'},
+    {date:'2026-05-01', name:'Labour Day', region:'Federal'},
+    {date:'2026-05-27', name:'Hari Raya Haji', region:'Federal'},
+    {date:'2026-05-31', name:'Wesak Day', region:'Federal'},
+    {date:'2026-06-01', name:"Wesak Day (observed) / Agong's Birthday", region:'Federal'},
+    {date:'2026-06-17', name:'Awal Muharram', region:'Federal'},
+    {date:'2026-08-25', name:"Prophet Muhammad's Birthday", region:'Federal'},
+    {date:'2026-08-31', name:'Merdeka Day', region:'Federal'},
+    {date:'2026-09-16', name:'Malaysia Day', region:'Federal'},
+    {date:'2026-11-08', name:'Deepavali', region:'Federal'},
+    {date:'2026-11-09', name:'Deepavali (observed)', region:'Federal'},
+    {date:'2026-12-11', name:"Sultan of Selangor's Birthday", region:'Selangor'},
+    {date:'2026-12-25', name:'Christmas Day', region:'Federal'}
+  ];
+  let customHolidays = [];
+
+  function allHolidays(){ return [...BASE_HOLIDAYS, ...customHolidays]; }
+  function holidaySet(){ return new Set(allHolidays().map(h=>h.date)); }
+
+  function parseDate(str){
+    const [y,m,d] = str.split('-').map(Number);
+    return new Date(Date.UTC(y, m-1, d));
+  }
+  function fmt(date){
+    return date.toISOString().slice(0,10);
+  }
+  function isWeekend(d){ const day=d.getUTCDay(); return day===0||day===6; }
+
+  function addDays(date, n, businessOnly, hset){
+    let d = new Date(date.getTime());
+    if(!businessOnly){
+      d.setUTCDate(d.getUTCDate()+n);
+      return d;
+    }
+    const step = n>=0 ? 1 : -1;
+    let remaining = Math.abs(n);
+    while(remaining>0){
+      d.setUTCDate(d.getUTCDate()+step);
+      if(!isWeekend(d) && !hset.has(fmt(d))) remaining--;
+    }
+    return d;
+  }
+
+  function businessDaysBetween(d1, d2, hset){
+    let count=0;
+    let d = new Date(Math.min(d1,d2));
+    const end = new Date(Math.max(d1,d2));
+    while(d<end){
+      d.setUTCDate(d.getUTCDate()+1);
+      if(!isWeekend(d) && !hset.has(fmt(d))) count++;
+    }
+    return count;
+  }
+
+  // tabs
+  document.querySelectorAll('.tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+      document.querySelectorAll('.pane').forEach(p=>p.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById(tab.dataset.pane).classList.add('active');
+    });
+  });
+
+  // default dates = today
+  const today = new Date();
+  const todayStr = today.toISOString().slice(0,10);
+  document.getElementById('addStart').value = todayStr;
+  document.getElementById('betweenFrom').value = todayStr;
+  document.getElementById('betweenTo').value = todayStr;
+
+  document.getElementById('calcAddBtn').addEventListener('click', () => {
+    const startStr = document.getElementById('addStart').value;
+    if(!startStr) return;
+    const n = parseInt(document.getElementById('addDays').value, 10) || 0;
+    const dir = document.querySelector('input[name="addDir"]:checked').value;
+    const businessOnly = document.getElementById('addBusiness').checked;
+    const signedN = dir==='sub' ? -n : n;
+    const start = parseDate(startStr);
+    const hset = holidaySet();
+    const result = addDays(start, signedN, businessOnly, hset);
+
+    const calendarDays = Math.round(Math.abs(result-start)/86400000);
+    const weeks = Math.floor(calendarDays/7);
+    const leftoverDays = calendarDays % 7;
+    const yearsDecimal = (calendarDays / 365.25).toFixed(2);
+    const mb = monthsDaysBreakdown(start, result);
+    const monthsPart = mb.years>0 ? `${mb.years} year${mb.years===1?'':'s'}, ${mb.months} month${mb.months===1?'':'s'}` : `${mb.totalMonths} month${mb.totalMonths===1?'':'s'}`;
+
+    const box = document.getElementById('addResult');
+    box.style.display='block';
+    box.innerHTML = `<div class="big">${result.toLocaleDateString('en-GB',{weekday:'long', year:'numeric', month:'long', day:'numeric', timeZone:'UTC'})}</div>
+      <div class="label">${businessOnly? 'Counting business days only (weekends & holidays skipped)' : 'Counting calendar days'}</div>
+      <div class="label">That's ${calendarDays} calendar day${calendarDays===1?'':'s'} from the start date</div>
+      <div class="label">≈ ${weeks} week${weeks===1?'':'s'}${leftoverDays? ` and ${leftoverDays} day${leftoverDays===1?'':'s'}` : ''}</div>
+      <div class="label">≈ ${monthsPart}${mb.days? `, ${mb.days} day${mb.days===1?'':'s'}` : ''} (calendar-accurate)</div>
+      <div class="label">≈ ${yearsDecimal} years</div>`;
+  });
+
+  function monthsDaysBreakdown(start, end){
+    let d1 = new Date(Math.min(start,end));
+    let d2 = new Date(Math.max(start,end));
+    let years = d2.getUTCFullYear() - d1.getUTCFullYear();
+    let months = d2.getUTCMonth() - d1.getUTCMonth();
+    let days = d2.getUTCDate() - d1.getUTCDate();
+    if(days < 0){
+      months--;
+      const prevMonthLastDay = new Date(Date.UTC(d2.getUTCFullYear(), d2.getUTCMonth(), 0));
+      days += prevMonthLastDay.getUTCDate();
+    }
+    if(months < 0){ years--; months += 12; }
+    return {years, months, days, totalMonths: years*12+months};
+  }
+
+  document.getElementById('calcBetweenBtn').addEventListener('click', () => {
+    const fromStr = document.getElementById('betweenFrom').value;
+    const toStr = document.getElementById('betweenTo').value;
+    if(!fromStr || !toStr) return;
+    const d1 = parseDate(fromStr), d2 = parseDate(toStr);
+    const calendarDays = Math.round(Math.abs(d2-d1)/86400000);
+    const hset = holidaySet();
+    const bDays = businessDaysBetween(d1, d2, hset);
+
+    const weeks = Math.floor(calendarDays/7);
+    const leftoverDays = calendarDays % 7;
+    const yearsDecimal = (calendarDays / 365.25).toFixed(2);
+    const mb = monthsDaysBreakdown(d1, d2);
+    const monthsPart = mb.years>0 ? `${mb.years} year${mb.years===1?'':'s'}, ${mb.months} month${mb.months===1?'':'s'}` : `${mb.totalMonths} month${mb.totalMonths===1?'':'s'}`;
+
+    const box = document.getElementById('betweenResult');
+    box.style.display='block';
+    box.innerHTML = `<div class="big">${calendarDays} calendar day${calendarDays===1?'':'s'}</div>
+      <div class="label">${bDays} business day${bDays===1?'':'s'} (weekends &amp; holidays excluded)</div>
+      <div class="label">≈ ${weeks} week${weeks===1?'':'s'}${leftoverDays? ` and ${leftoverDays} day${leftoverDays===1?'':'s'}` : ''}</div>
+      <div class="label">≈ ${monthsPart}${mb.days? `, ${mb.days} day${mb.days===1?'':'s'}` : ''} (calendar-accurate)</div>
+      <div class="label">≈ ${yearsDecimal} years</div>`;
+  });
+
+  function calcHours(){
+    const hours = parseFloat(document.getElementById('hoursInput').value) || 0;
+    const perDay = parseFloat(document.getElementById('hoursPerDay').value) || 8;
+    const box = document.getElementById('hoursResult');
+    if(perDay <= 0){
+      box.innerHTML = `<div class="label">Hours per working day must be more than 0.</div>`;
+      return;
+    }
+    const decimalDays = hours / perDay;
+    const wholeDays = Math.floor(decimalDays);
+    const leftoverHours = +(hours - wholeDays*perDay).toFixed(2);
+
+    box.innerHTML = `<div class="big">${decimalDays.toFixed(2)} working day${Math.abs(decimalDays-1)<0.001?'':'s'}</div>
+      <div class="label">${wholeDays} full day${wholeDays===1?'':'s'}${leftoverHours>0 ? ` + ${leftoverHours} hour${leftoverHours===1?'':'s'} remaining` : ''}</div>`;
+  }
+  document.getElementById('hoursInput').addEventListener('input', calcHours);
+  document.getElementById('hoursPerDay').addEventListener('input', calcHours);
+  calcHours();
+
+  function renderHolidays(){
+    const list = document.getElementById('holidayList');
+    const items = allHolidays().slice().sort((a,b)=> a.date.localeCompare(b.date));
+    list.innerHTML = items.map(h => {
+      const d = parseDate(h.date);
+      const short = d.toLocaleDateString('en-GB',{day:'2-digit', month:'short', timeZone:'UTC'});
+      const region = customHolidays.includes(h) ? 'Custom' : h.region;
+      return `<div class="holiday-row">
+        <span class="holiday-date">${short}</span>
+        <span class="holiday-name">${h.name}</span>
+        <span class="region-tag region-${region}">${region}</span>
+      </div>`;
+    }).join('');
+  }
+  renderHolidays();
+
+  document.getElementById('addCustomBtn').addEventListener('click', () => {
+    const date = document.getElementById('customDate').value;
+    const label = document.getElementById('customLabel').value.trim();
+    if(!date || !label) return;
+    customHolidays.push({date, name:label, region:'Custom'});
+    document.getElementById('customDate').value='';
+    document.getElementById('customLabel').value='';
+    renderHolidays();
+  });
+})();
+
+/* ============================================================
+   REMOVE DUPLICATES
+   ============================================================ */
+(function(){
+  const input = document.getElementById('dedupeInput');
+  const output = document.getElementById('dedupeOutput');
+  const btn = document.getElementById('dedupeBtn');
+  const status = document.getElementById('dedupeStatus');
+  const counts = document.getElementById('dedupeCounts');
+  const copyBtn = document.getElementById('dedupeCopyBtn');
+  const caseSensitiveEl = document.getElementById('dedupeCaseSensitive');
+  const trimEl = document.getElementById('dedupeTrim');
+  const ignoreBlankEl = document.getElementById('dedupeIgnoreBlank');
+  const sortEl = document.getElementById('dedupeSort');
+  const delimiterCheckEl = document.getElementById('dedupeDelimiterCheck');
+  const delimiterValueEl = document.getElementById('dedupeDelimiterValue');
+  const relatedBox = document.getElementById('dedupeRelatedBox');
+
+  function process(){
+    const rawLines = input.value.split(/\r?\n/);
+    const caseSensitive = caseSensitiveEl.checked;
+    const trim = trimEl.checked;
+    const ignoreBlank = ignoreBlankEl.checked;
+    const sort = sortEl.checked;
+    const delimiterOn = delimiterCheckEl.checked;
+    const delimiter = delimiterValueEl.value.trim() || '/';
+
+    // Step 1: if enabled, split every line on the delimiter into separate individual entries
+    let expanded = [];
+    let splitLineCount = 0;
+    if(delimiterOn){
+      rawLines.forEach(line => {
+        const parts = line.split(delimiter);
+        if(parts.length > 1) splitLineCount++;
+        parts.forEach(p => expanded.push(p));
+      });
+    } else {
+      expanded = rawLines;
+    }
+
+    // Step 2: standard dedupe pass over the (possibly expanded) list
+    const seen = new Set();
+    const result = [];
+    let duplicateCount = 0;
+    let blankSkipped = 0;
+
+    for(let line of expanded){
+      const original = line;
+      const working = trim ? line.trim() : line;
+      if(ignoreBlank && working === ''){ blankSkipped++; continue; }
+      const key = caseSensitive ? working : working.toLowerCase();
+      if(seen.has(key)){ duplicateCount++; continue; }
+      seen.add(key);
+      result.push(trim ? working : original);
+    }
+
+    if(sort){
+      result.sort((a,b) => a.localeCompare(b, undefined, {sensitivity: caseSensitive ? 'case' : 'base'}));
+    }
+
+    output.value = result.join('\n');
+    counts.textContent = `${result.length} unique line${result.length===1?'':'s'} · ${duplicateCount} duplicate${duplicateCount===1?'':'s'} removed${ignoreBlank && blankSkipped ? ` · ${blankSkipped} blank line${blankSkipped===1?'':'s'} skipped` : ''}`;
+
+    if(delimiterOn && splitLineCount){
+      relatedBox.style.display = 'block';
+      relatedBox.innerHTML = `Split ${splitLineCount} combined line${splitLineCount===1?'':'s'} into individual names before deduping.`;
+    } else {
+      relatedBox.style.display = 'none';
+    }
+
+    status.textContent = 'Done.';
+    setTimeout(() => status.textContent = '', 1500);
+  }
+
+  btn.addEventListener('click', process);
+
+  copyBtn.addEventListener('click', async () => {
+    try{
+      await navigator.clipboard.writeText(output.value);
+    }catch(e){
+      output.select();
+      document.execCommand('copy');
+    }
+    const old = copyBtn.textContent;
+    copyBtn.textContent = 'Copied';
+    setTimeout(() => copyBtn.textContent = old, 1200);
+  });
+})();
+
+/* ============================================================
+   EXTRACT NAMES FROM EMAILS
+   ============================================================ */
+(function(){
+  const input = document.getElementById('extractInput');
+  const output = document.getElementById('extractOutput');
+  const btn = document.getElementById('extractBtn');
+  const status = document.getElementById('extractStatus');
+  const counts = document.getElementById('extractCounts');
+  const copyBtn = document.getElementById('extractCopyBtn');
+  const delimiterEl = document.getElementById('extractDelimiter');
+  const removeNumbersEl = document.getElementById('extractRemoveNumbers');
+  const titleCaseEl = document.getElementById('extractTitleCase');
+  const removeDupesEl = document.getElementById('extractRemoveDupes');
+
+  const EMAIL_RE = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/;
+
+  function escapeRegex(s){
+    return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+
+  function cleanLocalPart(local, removeNumbers, titleCase){
+    let s = local.replace(/[._\-+]+/g, ' ');
+    if(removeNumbers) s = s.replace(/[0-9]+/g, ' ');
+    s = s.replace(/\s+/g, ' ').trim();
+    if(titleCase){
+      s = s.split(' ').map(w => w ? w[0].toUpperCase() + w.slice(1).toLowerCase() : w).join(' ');
+    }
+    return s;
+  }
+
+  function cleanDisplayName(name, removeNumbers, titleCase){
+    let s = name.trim().replace(/^["']|["']$/g, '');
+    if(removeNumbers) s = s.replace(/[0-9]+/g, ' ');
+    s = s.replace(/\s+/g, ' ').trim();
+    if(titleCase){
+      s = s.split(' ').map(w => w ? w[0].toUpperCase() + w.slice(1).toLowerCase() : w).join(' ');
+    }
+    return s;
+  }
+
+  function process(){
+    const text = input.value;
+    const delim = delimiterEl.value;
+    const removeNumbers = removeNumbersEl.checked;
+    const titleCase = titleCaseEl.checked;
+    const removeDupes = removeDupesEl.checked;
+
+    let tokens;
+    const customDelim = (delim || '').trim();
+    if(customDelim && customDelim !== ',' && customDelim !== ';'){
+      tokens = text.split(new RegExp(`[,;\\r\\n]+|${escapeRegex(customDelim)}+`));
+    } else {
+      tokens = text.split(/[,;\r\n]+/);
+    }
+
+    const names = [];
+    const seen = new Set();
+    let skipped = 0;
+
+    tokens.forEach(tok => {
+      tok = tok.trim();
+      if(!tok) return;
+
+      let name = null;
+      // "Jane Foster <jane@x.com>" style — prefer the display name if there is one
+      const angle = tok.match(/^["']?([^"'<]*?)["']?\s*<\s*([^<>]+)\s*>\s*$/);
+      if(angle){
+        const displayName = angle[1].trim();
+        const emailPart = angle[2].trim();
+        if(displayName){
+          name = cleanDisplayName(displayName, removeNumbers, titleCase);
+        } else {
+          const m = emailPart.match(EMAIL_RE);
+          const local = m ? m[0].split('@')[0] : emailPart.split('@')[0];
+          name = cleanLocalPart(local, removeNumbers, titleCase);
+        }
+      } else {
+        const match = tok.match(EMAIL_RE);
+        let local;
+        if(match){
+          local = match[0].split('@')[0];
+        } else if(tok.includes('@')){
+          local = tok.split('@')[0];
+        } else {
+          skipped++;
+          return;
+        }
+        name = cleanLocalPart(local, removeNumbers, titleCase);
+      }
+
+      if(!name) return;
+      if(removeDupes){
+        const key = name.toLowerCase();
+        if(seen.has(key)) return;
+        seen.add(key);
+      }
+      names.push(name);
+    });
+
+    output.value = names.join('\n');
+    counts.textContent = `${names.length} name${names.length===1?'':'s'} extracted${skipped ? ` · ${skipped} entr${skipped===1?'y':'ies'} skipped (no email found)` : ''}`;
+    status.textContent = 'Done.';
+    setTimeout(() => status.textContent = '', 1500);
+  }
+
+  btn.addEventListener('click', process);
+
+  copyBtn.addEventListener('click', async () => {
+    try{
+      await navigator.clipboard.writeText(output.value);
+    }catch(e){
+      output.select();
+      document.execCommand('copy');
+    }
+    const old = copyBtn.textContent;
+    copyBtn.textContent = 'Copied';
+    setTimeout(() => copyBtn.textContent = old, 1200);
+  });
+})();
+
+/* ============================================================
+   REORDER NAMES
+   ============================================================ */
+(function(){
+  const input = document.getElementById('reorderInput');
+  const output = document.getElementById('reorderOutput');
+  const btn = document.getElementById('reorderBtn');
+  const status = document.getElementById('reorderStatus');
+  const counts = document.getElementById('reorderCounts');
+  const copyBtn = document.getElementById('reorderCopyBtn');
+
+  function toFirstLast(line){
+    const idx = line.indexOf(',');
+    const surname = line.slice(0, idx).trim();
+    const given = line.slice(idx+1).trim();
+    return `${given} ${surname}`.replace(/\s+/g, ' ').trim();
+  }
+
+  function toLastFirst(line){
+    const trimmed = line.trim();
+    const firstSpace = trimmed.indexOf(' ');
+    if(firstSpace === -1) return trimmed; // single word — nothing to reorder
+    const given = trimmed.slice(0, firstSpace).trim();
+    const surname = trimmed.slice(firstSpace+1).trim();
+    return `${surname}, ${given}`;
+  }
+
+  function reorderLine(line, mode){
+    const trimmed = line.trim();
+    if(!trimmed) return '';
+    const hasComma = trimmed.includes(',');
+    if(mode === 'auto'){
+      return hasComma ? toFirstLast(trimmed) : toLastFirst(trimmed);
+    } else if(mode === 'firstlast'){
+      return hasComma ? toFirstLast(trimmed) : trimmed;
+    } else { // lastfirst
+      return hasComma ? trimmed : toLastFirst(trimmed);
+    }
+  }
+
+  function process(){
+    const mode = document.querySelector('input[name="reorderMode"]:checked').value;
+    const lines = input.value.split(/\r?\n/);
+    let changedCount = 0;
+    const result = lines.map(line => {
+      if(!line.trim()) return '';
+      const out = reorderLine(line, mode);
+      if(out !== line.trim()) changedCount++;
+      return out;
+    });
+    output.value = result.join('\n');
+    const nonEmpty = result.filter(l => l.trim()).length;
+    counts.textContent = `${nonEmpty} name${nonEmpty===1?'':'s'} · ${changedCount} reordered`;
+    status.textContent = 'Done.';
+    setTimeout(() => status.textContent = '', 1500);
+  }
+
+  btn.addEventListener('click', process);
+
+  copyBtn.addEventListener('click', async () => {
+    try{
+      await navigator.clipboard.writeText(output.value);
+    }catch(e){
+      output.select();
+      document.execCommand('copy');
+    }
+    const old = copyBtn.textContent;
+    copyBtn.textContent = 'Copied';
+    setTimeout(() => copyBtn.textContent = old, 1200);
+  });
+})();
+
+/* ============================================================
+   CURRENCY CONVERTER
+   ============================================================ */
+(function(){
+  const amountEl = document.getElementById('fxAmount');
+  const fromEl = document.getElementById('fxFrom');
+  const toEl = document.getElementById('fxTo');
+  const swapBtn = document.getElementById('fxSwapBtn');
+  const previewEl = document.getElementById('fxPreview');
+  const addRowBtn = document.getElementById('fxAddRowBtn');
+  const fxRows = document.getElementById('fxRows');
+  const statusEl = document.getElementById('fxStatus');
+
+  const API = 'https://api.frankfurter.dev/v2';
+  const rateCache = {};
+  let currencies = [];
+  let rowCounter = 0;
+
+  // ---- load currency list ----
+  async function loadCurrencies(){
+    try{
+      const res = await fetch(`${API}/currencies`);
+      if(!res.ok) throw new Error();
+      const data = await res.json();
+      currencies = data
+        .filter(c => c.iso_code && c.iso_code.length === 3)
+        .sort((a,b) => a.iso_code.localeCompare(b.iso_code));
+
+      const optionsHtml = currencies.map(c =>
+        `<option value="${c.iso_code}">${c.iso_code} — ${c.name}</option>`
+      ).join('');
+      fromEl.innerHTML = optionsHtml;
+      toEl.innerHTML = optionsHtml;
+
+      const hasMYR = currencies.some(c => c.iso_code === 'MYR');
+      fromEl.value = hasMYR ? 'MYR' : (currencies[0]?.iso_code || '');
+      toEl.value = 'USD';
+
+      previewConvert();
+    }catch(e){
+      previewEl.textContent = "Couldn't load currencies — check your connection.";
+    }
+  }
+
+  // ---- rate fetching ----
+  async function getRates(base){
+    if(rateCache[base]) return rateCache[base];
+    const res = await fetch(`${API}/rates?base=${encodeURIComponent(base)}`);
+    if(!res.ok) throw new Error();
+    const data = await res.json();
+    const map = {}; let date = null;
+    data.forEach(r => { map[r.quote] = r.rate; date = r.date; });
+    map[base] = 1;
+    rateCache[base] = {map, date};
+    return rateCache[base];
+  }
+
+  // ---- preview conversion (live in the form) ----
+  async function previewConvert(){
+    const amount = parseFloat(amountEl.value) || 0;
+    const from = fromEl.value, to = toEl.value;
+    if(!from || !to){ previewEl.textContent = 'Select currencies'; return; }
+    previewEl.textContent = '…';
+    try{
+      const {map, date} = await getRates(from);
+      const rate = map[to];
+      if(rate == null){ previewEl.textContent = 'Rate unavailable'; return; }
+      const converted = (amount * rate).toLocaleString(undefined,{maximumFractionDigits:4});
+      const rateLabel = `1 ${from} = ${rate.toLocaleString(undefined,{maximumFractionDigits:6})} ${to}`;
+      previewEl.innerHTML = `${amount.toLocaleString(undefined,{maximumFractionDigits:2})} ${from} = <b>${converted} ${to}</b><span class="fx-rate-label">${rateLabel} · ${date}</span>`;
+    }catch(e){
+      previewEl.textContent = 'Error fetching rate';
+    }
+  }
+
+  // ---- add row from current form values ----
+  function addRow(){
+    const amount = parseFloat(amountEl.value) || 0;
+    const from = fromEl.value, to = toEl.value;
+    if(!from || !to) return;
+
+    const id = ++rowCounter;
+    const row = document.createElement('div');
+    row.className = 'fx-row-item';
+    row.dataset.rowId = id;
+
+    const optionsHtml = currencies.map(c =>
+      `<option value="${c.iso_code}">${c.iso_code} — ${c.name}</option>`
+    ).join('');
+
+    row.innerHTML = `
+      <input class="fx-amount" type="number" value="${amount}" min="0" step="any">
+      <select class="fx-from">${optionsHtml}</select>
+      <button class="btn ghost fx-swap" type="button" style="padding:4px 8px;" title="Swap">⇄</button>
+      <select class="fx-to">${optionsHtml}</select>
+      <button class="btn ghost" type="button" style="color:var(--danger);padding:4px 8px;" title="Remove row">✕</button>
+      <div class="fx-result" id="fxResult_${id}">…</div>`;
+
+    const amountInp = row.querySelector('.fx-amount');
+    const fromSel = row.querySelector('.fx-from');
+    const toSel = row.querySelector('.fx-to');
+    const swapBtn = row.querySelector('[title="Swap"]');
+    const removeBtn = row.querySelector('[title="Remove row"]');
+    const resultDiv = row.querySelector(`#fxResult_${id}`);
+
+    fromSel.value = from;
+    toSel.value = to;
+
+    async function convertRow(){
+      const amt = parseFloat(amountInp.value) || 0;
+      const f = fromSel.value, t = toSel.value;
+      if(!f || !t){ resultDiv.textContent = '—'; return; }
+      resultDiv.textContent = '…';
+      try{
+        const {map, date} = await getRates(f);
+        const rate = map[t];
+        if(rate == null){ resultDiv.textContent = 'Rate unavailable'; return; }
+        const converted = (amt * rate).toLocaleString(undefined,{maximumFractionDigits:4});
+        const rateLabel = `1 ${f} = ${rate.toLocaleString(undefined,{maximumFractionDigits:6})} ${t}`;
+        resultDiv.innerHTML = `${amt.toLocaleString(undefined,{maximumFractionDigits:2})} ${f} = <b>${converted} ${t}</b><span class="fx-rate-label">${rateLabel} · ${date}</span>`;
+      }catch(e){
+        resultDiv.textContent = 'Error fetching rate';
+      }
+    }
+
+    amountInp.addEventListener('input', convertRow);
+    fromSel.addEventListener('change', convertRow);
+    toSel.addEventListener('change', convertRow);
+    swapBtn.addEventListener('click', () => {
+      const tmp = fromSel.value;
+      fromSel.value = toSel.value;
+      toSel.value = tmp;
+      convertRow();
+    });
+    removeBtn.addEventListener('click', () => row.remove());
+
+    fxRows.appendChild(row);
+    convertRow();
+  }
+
+  addRowBtn.addEventListener('click', () => {
+    addRow();
+    amountEl.value = '';
+    previewConvert();
+    amountEl.focus();
+  });
+
+  amountEl.addEventListener('input', previewConvert);
+  fromEl.addEventListener('change', previewConvert);
+  toEl.addEventListener('change', previewConvert);
+  swapBtn.addEventListener('click', () => {
+    const tmp = fromEl.value;
+    fromEl.value = toEl.value;
+    toEl.value = tmp;
+    previewConvert();
+  });
+
+  loadCurrencies();
+
+  // ---------- simple calculator ----------
+  const calcToggleBtn = document.getElementById('calcToggleBtn');
+  const calcWrap = document.getElementById('calcWrap');
+  const calcDisplay = document.getElementById('calcDisplay');
+  const calcPreview = document.getElementById('calcPreview');
+
+  calcToggleBtn.addEventListener('click', () => {
+    const open = calcWrap.classList.toggle('open');
+    calcToggleBtn.textContent = open ? 'Hide calculator' : 'Open calculator';
+  });
+
+  let calc = { current: '0', previous: null, operator: null, overwrite: true, expression: '' };
+
+  function calcRender(){ calcDisplay.textContent = calc.current; calcPreview.textContent = calc.expression; }
+
+  function calcInputDigit(d){
+    if(calc.overwrite){
+      if(!calc.operator) calc.expression = '';
+      calc.current = d === '.' ? '0.' : d;
+      calc.overwrite = false;
+    } else {
+      if(d === '.' && calc.current.includes('.')) return;
+      calc.current = (calc.current === '0' && d !== '.') ? d : calc.current + d;
+    }
+    calcRender();
+  }
+
+  function calcSetOperator(op){
+    if(calc.operator && !calc.overwrite) calcDoCompute();
+    calc.previous = calc.current; calc.operator = op; calc.overwrite = true;
+    calc.expression = `${calc.previous} ${op}`;
+    calcRender();
+  }
+
+  function calcDoCompute(){
+    if(calc.operator == null || calc.previous == null) return;
+    const a = parseFloat(calc.previous), b = parseFloat(calc.current);
+    const exprStr = `${calc.previous} ${calc.operator} ${calc.current} =`;
+    let result;
+    switch(calc.operator){
+      case '+': result = a+b; break;
+      case '-': result = a-b; break;
+      case '×': result = a*b; break;
+      case '÷': result = b===0 ? NaN : a/b; break;
+      default: return;
+    }
+    calc.current = Number.isFinite(result) ? String(Math.round(result*1e10)/1e10) : 'Error';
+    calc.previous = null; calc.operator = null; calc.overwrite = true;
+    calc.expression = exprStr;
+    calcRender();
+    // feed result into the amount field
+    if(calc.current !== 'Error'){
+      amountEl.value = calc.current;
+      previewConvert();
+    }
+  }
+
+  function calcClear(){ calc = { current: '0', previous: null, operator: null, overwrite: true, expression: '' }; calcRender(); }
+  function calcBackspace(){ if(calc.overwrite) return; calc.current = calc.current.length > 1 ? calc.current.slice(0,-1) : '0'; calcRender(); }
+
+  calcWrap.addEventListener('click', e => {
+    const btn = e.target.closest('[data-calc]');
+    if(!btn) return;
+    const type = btn.dataset.calc;
+    if(type === 'digit') calcInputDigit(btn.dataset.val);
+    else if(type === 'op') calcSetOperator(btn.dataset.op);
+    else if(type === 'equals') calcDoCompute();
+    else if(type === 'clear') calcClear();
+    else if(type === 'back') calcBackspace();
+  });
+})();
+
+// ========== TIMEZONE CONVERTER ==========
+(function(){
+  const tzTimeEl = document.getElementById('tzTime');
+  const tzDateEl = document.getElementById('tzDate');
+  const tzCheckboxesEl = document.getElementById('tzCheckboxes');
+  const tzResultsEl = document.getElementById('tzResults');
+
+  const tzOriginEl = document.getElementById('tzOrigin');
+
+  const timezones = [
+    // UTC
+    'UTC',
+    // Europe
+    'Europe/London', 'Europe/Paris', 'Europe/Berlin', 'Europe/Madrid', 'Europe/Rome',
+    'Europe/Amsterdam', 'Europe/Brussels', 'Europe/Vienna', 'Europe/Prague', 'Europe/Warsaw',
+    'Europe/Moscow', 'Europe/Istanbul', 'Europe/Athens', 'Europe/Dublin', 'Europe/Lisbon',
+    // Asia
+    'Asia/Tokyo', 'Asia/Seoul', 'Asia/Shanghai', 'Asia/Hong_Kong', 'Asia/Bangkok',
+    'Asia/Singapore', 'Asia/Kuala_Lumpur', 'Asia/Jakarta', 'Asia/Manila', 'Asia/Ho_Chi_Minh',
+    'Asia/Kolkata', 'Asia/Bangkok', 'Asia/Dubai', 'Asia/Karachi', 'Asia/Tehran',
+    'Asia/Almaty', 'Asia/Baku', 'Asia/Kabul', 'Asia/Kathmandu',
+    // Americas
+    'America/New_York', 'America/Chicago', 'America/Denver', 'America/Los_Angeles',
+    'America/Toronto', 'America/Mexico_City', 'America/Sao_Paulo', 'America/Buenos_Aires',
+    'America/Caracas', 'America/Lima', 'America/Bogota', 'America/Anchorage', 'America/Juneau',
+    // Pacific
+    'Pacific/Auckland', 'Pacific/Fiji', 'Pacific/Honolulu', 'Pacific/Tongatapu',
+    // Africa
+    'Africa/Cairo', 'Africa/Johannesburg', 'Africa/Lagos', 'Africa/Nairobi',
+    // Australia
+    'Australia/Sydney', 'Australia/Melbourne', 'Australia/Brisbane', 'Australia/Perth', 'Australia/Adelaide'
+  ];
+
+  // Populate origin dropdown, default to Malaysia
+  timezones.forEach(tz => {
+    const opt = document.createElement('option');
+    opt.value = tz;
+    opt.text = tz;
+    if(tz === 'Asia/Kuala_Lumpur') opt.selected = true;
+    tzOriginEl.appendChild(opt);
+  });
+  tzOriginEl.addEventListener('change', convertTimezones);
+
+  const defaultChecked = ['Asia/Kuala_Lumpur', 'Europe/London', 'Asia/Singapore'];
+  const storageKey = 'tzPinnedTimezones';
+
+  // Load saved timezone selection or use defaults
+  let pinnedTz = JSON.parse(localStorage.getItem(storageKey)) || defaultChecked;
+
+  // Create checkboxes for all timezones
+  timezones.forEach(tz => {
+    const checked = pinnedTz.includes(tz);
+    const checkboxDiv = document.createElement('div');
+    checkboxDiv.className = 'tz-checkbox';
+    checkboxDiv.innerHTML = `
+      <input type="checkbox" id="tz_${tz}" value="${tz}" ${checked ? 'checked' : ''}>
+      <label for="tz_${tz}">${tz}</label>
+    `;
+    tzCheckboxesEl.appendChild(checkboxDiv);
+
+    checkboxDiv.querySelector('input').addEventListener('change', () => {
+      pinnedTz = Array.from(document.querySelectorAll('#tzCheckboxes input:checked')).map(el => el.value);
+      localStorage.setItem(storageKey, JSON.stringify(pinnedTz));
+      convertTimezones();
+    });
+  });
+
+  // Set today's date and current time as defaults
+  const now = new Date();
+  tzDateEl.valueAsDate = now;
+  tzTimeEl.value = now.toTimeString().slice(0, 5);
+
+  function convertTimezones(){
+    const timeStr = tzTimeEl.value;
+    const dateStr = tzDateEl.value;
+    const originTz = tzOriginEl.value;
+
+    if(!timeStr || !dateStr) {
+      tzResultsEl.innerHTML = '<div style="grid-column: 1/-1; text-align:center; padding:20px; color:var(--text-muted);">Enter time and date</div>';
+      return;
+    }
+
+    if(pinnedTz.length === 0){
+      tzResultsEl.innerHTML = '<div style="grid-column: 1/-1; text-align:center; padding:20px; color:var(--text-muted);">Select timezones to compare</div>';
+      return;
+    }
+
+    try {
+      // Parse the input as a wall-clock time in the origin timezone.
+      // Strategy: treat the input as UTC, then find how much the origin tz
+      // differs from UTC at that moment, and subtract that offset.
+      const [hours, minutes] = timeStr.split(':').map(Number);
+      const [year, month, day] = dateStr.split('-').map(Number);
+
+      // Step 1: create a Date as if the input were UTC
+      const naiveUtc = new Date(Date.UTC(year, month - 1, day, hours, minutes, 0));
+
+      // Step 2: find what wall-clock time that UTC instant shows in the origin tz
+      const parts = new Intl.DateTimeFormat('en-CA', {
+        timeZone: originTz,
+        year: 'numeric', month: '2-digit', day: '2-digit',
+        hour: '2-digit', minute: '2-digit', second: '2-digit',
+        hour12: false
+      }).formatToParts(naiveUtc);
+
+      const get = type => Number(parts.find(p => p.type === type).value);
+      const tzY = get('year'), tzM = get('month'), tzD = get('day');
+      const tzH = get('hour'), tzMin = get('minute'), tzS = get('second');
+
+      // Step 3: the difference between the naive UTC and origin tz wall clock
+      // is the UTC offset of the origin tz. Subtract it to get the real UTC instant.
+      const originWall = Date.UTC(tzY, tzM - 1, tzD, tzH, tzMin, tzS);
+      const offsetMs = originWall - naiveUtc.getTime();
+      const realUtc = new Date(naiveUtc.getTime() - offsetMs);
+
+      // Step 4: convert real UTC to each pinned timezone
+      let html = '';
+      pinnedTz.forEach(tz => {
+        const tzTimeStr = new Intl.DateTimeFormat('en-GB', {
+          timeZone: tz,
+          hour: '2-digit', minute: '2-digit',
+          hour12: false
+        }).format(realUtc);
+        html += `<div class="tz-result-row"><div class="tz-result-tz">${tz}</div><div class="tz-result-time">${tzTimeStr}</div></div>`;
+      });
+
+      tzResultsEl.innerHTML = html;
+    } catch(e) {
+      tzResultsEl.innerHTML = '<div style="grid-column: 1/-1; text-align:center; padding:20px; color:var(--text-muted);">Error converting time</div>';
+    }
+  }
+
+  tzTimeEl.addEventListener('change', convertTimezones);
+  tzDateEl.addEventListener('change', convertTimezones);
+
+  convertTimezones();
+})();
+
+// ========== TAB SWITCHING ==========
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const tabName = btn.dataset.tab;
+    
+    // Deactivate all tabs and panes
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+    
+    // Activate selected tab and pane
+    btn.classList.add('active');
+    document.querySelector(`.tab-pane[data-tab="${tabName}"]`).classList.add('active');
+  });
+});
+</script>
+</body>
+</html>
