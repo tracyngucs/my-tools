@@ -1022,6 +1022,7 @@
     </div>
 
     <div id="ntagResults" style="margin-top:16px; display:none;">
+      <p style="font-size:12px; color:var(--text-muted); margin:0 0 6px;">Rounded up</p>
       <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:10px;">
         <div class="result-box">
           <div class="big" id="ntagA4">—</div>
@@ -1034,6 +1035,21 @@
         <div class="result-box">
           <div class="big" id="ntagLeftover">—</div>
           <div class="label">Leftover blanks</div>
+        </div>
+      </div>
+      <p style="font-size:12px; color:var(--text-muted); margin:14px 0 6px;">Rounded down</p>
+      <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:10px;">
+        <div class="result-box">
+          <div class="big" id="ntagA4Down">—</div>
+          <div class="label">A4 sheets</div>
+        </div>
+        <div class="result-box">
+          <div class="big" id="ntagTotalDown">—</div>
+          <div class="label">Total nametags</div>
+        </div>
+        <div class="result-box">
+          <div class="big" id="ntagShortDown">—</div>
+          <div class="label">Short by</div>
         </div>
       </div>
     </div>
@@ -2863,9 +2879,12 @@
   const namesEl   = document.getElementById('ntagNames');
   const blanksEl  = document.getElementById('ntagBlanks');
   const resultsEl = document.getElementById('ntagResults');
-  const a4El      = document.getElementById('ntagA4');
-  const totalEl   = document.getElementById('ntagTotal');
-  const leftoverEl= document.getElementById('ntagLeftover');
+  const a4El        = document.getElementById('ntagA4');
+  const totalEl     = document.getElementById('ntagTotal');
+  const leftoverEl  = document.getElementById('ntagLeftover');
+  const a4DownEl    = document.getElementById('ntagA4Down');
+  const totalDownEl = document.getElementById('ntagTotalDown');
+  const shortDownEl = document.getElementById('ntagShortDown');
 
   function calc(){
     const names  = Math.max(0, parseInt(namesEl.value)  || 0);
@@ -2873,13 +2892,22 @@
     const needed = names + blanks;
     if(needed === 0){ resultsEl.style.display = 'none'; return; }
 
-    const a4       = Math.ceil(needed / 8);
-    const total    = a4 * 8;
-    const leftover = total - needed;
+    const a4Up       = Math.ceil(needed / 8);
+    const totalUp    = a4Up * 8;
+    const leftover   = totalUp - needed;
 
-    a4El.textContent       = a4;
-    totalEl.textContent    = total;
-    leftoverEl.textContent = leftover;
+    const a4Down     = Math.floor(needed / 8);
+    const totalDown  = a4Down * 8;
+    const shortBy    = needed - totalDown;
+
+    a4El.textContent        = a4Up;
+    totalEl.textContent     = totalUp;
+    leftoverEl.textContent  = leftover;
+
+    a4DownEl.textContent    = a4Down;
+    totalDownEl.textContent = totalDown;
+    shortDownEl.textContent = shortBy;
+
     resultsEl.style.display = 'block';
   }
 
