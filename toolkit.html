@@ -1005,6 +1005,40 @@
     <div id="tzResults" style="margin-top:14px;"></div>
   </div>
 
+  <!-- ============ NAMETAG CALCULATOR ============ -->
+  <div class="card">
+    <h2>Nametag Calculator</h2>
+    <p class="sub">8 nametags per A4. Enter how many names and spare blanks you need.</p>
+
+    <div class="field-row">
+      <div class="field">
+        <label>Number of names</label>
+        <input type="number" id="ntagNames" min="0" value="0" placeholder="0">
+      </div>
+      <div class="field">
+        <label>Spare blanks</label>
+        <input type="number" id="ntagBlanks" min="0" value="0" placeholder="0">
+      </div>
+    </div>
+
+    <div id="ntagResults" style="margin-top:16px; display:none;">
+      <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:10px;">
+        <div class="result-box">
+          <div class="big" id="ntagA4">—</div>
+          <div class="label">A4 sheets</div>
+        </div>
+        <div class="result-box">
+          <div class="big" id="ntagTotal">—</div>
+          <div class="label">Total nametags</div>
+        </div>
+        <div class="result-box">
+          <div class="big" id="ntagLeftover">—</div>
+          <div class="label">Leftover blanks</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- ============ CURRENCY CONVERTER ============ -->
   <div class="card">
     <h2>Currency Converter</h2>
@@ -2822,6 +2856,35 @@
   tzDateEl.addEventListener('change', convertTimezones);
 
   convertTimezones();
+})();
+
+// ========== NAMETAG CALCULATOR ==========
+(function(){
+  const namesEl   = document.getElementById('ntagNames');
+  const blanksEl  = document.getElementById('ntagBlanks');
+  const resultsEl = document.getElementById('ntagResults');
+  const a4El      = document.getElementById('ntagA4');
+  const totalEl   = document.getElementById('ntagTotal');
+  const leftoverEl= document.getElementById('ntagLeftover');
+
+  function calc(){
+    const names  = Math.max(0, parseInt(namesEl.value)  || 0);
+    const blanks = Math.max(0, parseInt(blanksEl.value) || 0);
+    const needed = names + blanks;
+    if(needed === 0){ resultsEl.style.display = 'none'; return; }
+
+    const a4       = Math.ceil(needed / 8);
+    const total    = a4 * 8;
+    const leftover = total - needed;
+
+    a4El.textContent       = a4;
+    totalEl.textContent    = total;
+    leftoverEl.textContent = leftover;
+    resultsEl.style.display = 'block';
+  }
+
+  namesEl.addEventListener('input', calc);
+  blanksEl.addEventListener('input', calc);
 })();
 
 // ========== TAB SWITCHING ==========
