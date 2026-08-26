@@ -699,6 +699,7 @@
     <button class="tab-btn active" data-tab="pdf-tools">PDF Tools</button>
     <button class="tab-btn" data-tab="extract-data">Extract Data</button>
     <button class="tab-btn" data-tab="calculators">Converters</button>
+    <button class="tab-btn" id="refreshBtn" style="margin-left:auto; color:var(--text-muted);" title="Reload app">↺ Refresh</button>
   </div>
 
   <!-- ============ TAB: PDF TOOLS ============ -->
@@ -2914,6 +2915,9 @@
   namesEl.addEventListener('input', calc);
   blanksEl.addEventListener('input', calc);
 })();
+
+// ========== REFRESH BUTTON ==========
+document.getElementById('refreshBtn').addEventListener('click', () => location.reload(true));
 
 // ========== TAB SWITCHING ==========
 document.querySelectorAll('.tab-btn').forEach(btn => {
