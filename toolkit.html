@@ -762,6 +762,7 @@
       <button class="btn secondary small" id="fmtUnderlineBtn"><u>U</u></button>
       <button class="btn secondary small" id="fmtBulletBtn" title="Bullet list">• List</button>
       <button class="btn secondary small" id="fmtNumberBtn" title="Numbered list">1. List</button>
+      <button class="btn secondary small" id="fmtRemoveNumBtn" title="Remove all numbers">Remove numbers</button>
       <button class="btn ghost small" id="fmtClearBtn">Clear formatting</button>
     </div>
 
@@ -1860,6 +1861,37 @@
     setSelectionByOffsets(editor, newOffsets.start, newOffsets.end);
   }
 
+  function removeNumbers(){
+    editor.focus();
+    const offsets = getCaretOffsets(editor);
+    const fullTokens = tokenize(editor.textContent);
+    const range = offsets && offsets.start !== offsets.end
+      ? offsetsToTokenRange(fullTokens, offsets.start, offsets.end)
+      : {tStart:0, tEnd: fullTokens.length};
+
+    // Strip any digit (including styled bold/italic unicode digits) in range
+    const kept = [];
+    for(let i=0;i<fullTokens.length;i++){
+      const t = fullTokens[i];
+      if(i>=range.tStart && i<range.tEnd && /[0-9]/.test(t.base)) continue;
+      kept.push(t);
+    }
+
+    let newText = renderTokens(kept);
+
+    // Clean up leftover numbered-list punctuation like ". " or ") " at line starts,
+    // and collapse doubled spaces left behind after removing inline numbers.
+    newText = newText
+      .split('\n')
+      .map(line => line.replace(/^([.\)\-]\s*)+/, ''))
+      .join('\n')
+      .replace(/ {2,}/g, ' ')
+      .replace(/[ \t]+\n/g, '\n');
+
+    editor.textContent = newText;
+    hint.textContent = 'Numbers removed. Select more text, or copy the result.';
+  }
+
   function applyListStyle(type){
     editor.focus();
     const offsets = getCaretOffsets(editor) || {start:0, end:0};
@@ -1904,6 +1936,7 @@
   document.getElementById('fmtUnderlineBtn').addEventListener('click', () => applyStyle('underline'));
   document.getElementById('fmtBulletBtn').addEventListener('click', () => applyListStyle('bullet'));
   document.getElementById('fmtNumberBtn').addEventListener('click', () => applyListStyle('number'));
+  document.getElementById('fmtRemoveNumBtn').addEventListener('click', removeNumbers);
   document.getElementById('fmtClearBtn').addEventListener('click', clearFormatting);
 
   // keep the editor as a single flat text node so offset math stays simple
