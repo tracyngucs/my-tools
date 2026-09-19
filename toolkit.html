@@ -782,8 +782,8 @@
     <p class="sub">Switch tabs for where you're pasting to. Type or paste in either one — your content carries over when you switch.</p>
 
     <div class="fmt-tabs">
-      <button class="fmt-tab-btn active" id="fmtTabWaBtn" data-fmt-tab="wa">WhatsApp / IG</button>
-      <button class="fmt-tab-btn" id="fmtTabHtmlBtn" data-fmt-tab="html">HTML</button>
+      <button class="fmt-tab-btn active" id="fmtTabHtmlBtn" data-fmt-tab="html">HTML</button>
+      <button class="fmt-tab-btn" id="fmtTabWaBtn" data-fmt-tab="wa">WhatsApp / IG</button>
     </div>
 
     <div class="format-toolbar">
@@ -796,8 +796,8 @@
       <button class="btn ghost small" id="fmtClearBtn">Clear formatting</button>
     </div>
 
-    <div class="format-editor" id="fmtEditorWa" contenteditable="true" data-placeholder="Type or paste here — bold/italic/underline will show as WhatsApp/Instagram style text…"></div>
-    <div class="format-editor" id="fmtEditorHtml" contenteditable="true" data-placeholder="Type or paste here — real formatting is kept…" style="display:none;"></div>
+    <div class="format-editor" id="fmtEditorWa" contenteditable="true" data-placeholder="Type here - formatting will be retained for WhatsApp / Instagram.&#10;Paste into HTML tab but copy from WA/IG tab." style="display:none;"></div>
+    <div class="format-editor" id="fmtEditorHtml" contenteditable="true" data-placeholder="Type or paste text from all sources here, including WA/IG content."></div>
 
     <div class="case-footer">
       <span class="counts" id="formatHint">Select text, then click a style button.</span>
@@ -1752,7 +1752,7 @@
   const tabWaBtn   = document.getElementById('fmtTabWaBtn');
   const tabHtmlBtn = document.getElementById('fmtTabHtmlBtn');
 
-  let activeTab = 'wa'; // 'wa' | 'html'
+  let activeTab = 'html'; // 'wa' | 'html'
 
   // ---- Unicode fake-bold/italic maps (for the WhatsApp/IG tab) ----
   function buildMap(startUpper, startLower, startDigit){
