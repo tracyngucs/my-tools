@@ -545,6 +545,31 @@
   }
 
   /* ---- Format Text ---- */
+  .fmt-tabs{
+    display:flex;
+    gap:4px;
+    background:#F1F2F5;
+    border-radius:9px;
+    padding:4px;
+    margin-bottom:14px;
+    width:fit-content;
+  }
+  .fmt-tab-btn{
+    padding:7px 16px;
+    font-size:12.5px;
+    font-weight:500;
+    border-radius:7px;
+    color:var(--text-muted);
+    background:transparent;
+    border:none;
+    font-family:inherit;
+    cursor:pointer;
+  }
+  .fmt-tab-btn.active{
+    background:#fff;
+    color:var(--text);
+    box-shadow:0 1px 2px rgba(0,0,0,0.06);
+  }
   .format-toolbar{
     display:flex;
     gap:8px;
@@ -754,7 +779,12 @@
   <!-- ============ FORMAT TEXT ============ -->
   <div class="card">
     <h2>Format Text</h2>
-    <p class="sub">Type your text, then select any word or phrase and click Bold, Italic or Underline — mix and match on the same words, then copy for Facebook, Instagram, WhatsApp and more.</p>
+    <p class="sub">Switch tabs for where you're pasting to. Type or paste in either one — your content carries over when you switch.</p>
+
+    <div class="fmt-tabs">
+      <button class="fmt-tab-btn active" id="fmtTabWaBtn" data-fmt-tab="wa">WhatsApp / IG</button>
+      <button class="fmt-tab-btn" id="fmtTabHtmlBtn" data-fmt-tab="html">HTML</button>
+    </div>
 
     <div class="format-toolbar">
       <button class="btn secondary small" id="fmtBoldBtn"><b>B</b></button>
@@ -766,10 +796,11 @@
       <button class="btn ghost small" id="fmtClearBtn">Clear formatting</button>
     </div>
 
-    <div class="format-editor" id="formatEditor" contenteditable="true" data-placeholder="Type your text here, then select words to style them…"></div>
+    <div class="format-editor" id="fmtEditorWa" contenteditable="true" data-placeholder="Type or paste here — bold/italic/underline will show as WhatsApp/Instagram style text…"></div>
+    <div class="format-editor" id="fmtEditorHtml" contenteditable="true" data-placeholder="Type or paste here — real formatting is kept…" style="display:none;"></div>
 
     <div class="case-footer">
-      <span class="counts" id="formatHint">Select some text, then click a style button.</span>
+      <span class="counts" id="formatHint">Select text, then click a style button.</span>
       <button class="btn" id="fmtCopyBtn">Copy</button>
     </div>
   </div>
@@ -1709,13 +1740,21 @@
 })();
 
 /* ============================================================
-   FORMAT TEXT
+   FORMAT TEXT — two synced tabs: WhatsApp/IG (Unicode-styled
+   plain text) and HTML (real formatting). Content converts
+   both ways when you switch tabs, type, or paste in either.
    ============================================================ */
 (function(){
-  const editor = document.getElementById('formatEditor');
-  const hint = document.getElementById('formatHint');
-  const copyBtn = document.getElementById('fmtCopyBtn');
+  const waEditor   = document.getElementById('fmtEditorWa');
+  const htmlEditor = document.getElementById('fmtEditorHtml');
+  const hint       = document.getElementById('formatHint');
+  const copyBtn    = document.getElementById('fmtCopyBtn');
+  const tabWaBtn   = document.getElementById('fmtTabWaBtn');
+  const tabHtmlBtn = document.getElementById('fmtTabHtmlBtn');
 
+  let activeTab = 'wa'; // 'wa' | 'html'
+
+  // ---- Unicode fake-bold/italic maps (for the WhatsApp/IG tab) ----
   function buildMap(startUpper, startLower, startDigit){
     const map = {};
     for(let i=0;i<26;i++){
@@ -1729,14 +1768,12 @@
     }
     return map;
   }
-
   const BOLD_MAP = buildMap(0x1D400, 0x1D41A, 0x1D7CE);
   const ITALIC_MAP = buildMap(0x1D434, 0x1D44E, null);
-  ITALIC_MAP['h'] = '\u210E'; // Unicode has no italic small h; use Planck constant symbol instead
+  ITALIC_MAP['h'] = 'ℎ'; // Unicode has no italic small h; use Planck constant symbol instead
   const BOLDITALIC_MAP = buildMap(0x1D468, 0x1D482, null); // no dedicated bold-italic digits either
 
-  // reverse lookup: styled char -> {base, bold, italic}
-  const REVERSE = {};
+  const REVERSE = {}; // styled char -> {base, bold, italic}
   function registerMap(map, bold, italic){
     for(const base in map){ REVERSE[map[base]] = {base, bold, italic}; }
   }
@@ -1744,38 +1781,233 @@
   registerMap(ITALIC_MAP, false, true);
   registerMap(BOLDITALIC_MAP, true, true);
 
-  function tokenize(str){
-    const chars = Array.from(str);
-    const tokens = [];
-    for(const ch of chars){
-      if(ch === '\u0332'){
-        if(tokens.length){
-          tokens[tokens.length-1].underline = true;
-          tokens[tokens.length-1].length += 1;
-        }
-        continue;
-      }
-      const info = REVERSE[ch] || {base: ch, bold:false, italic:false};
-      tokens.push({base: info.base, bold: info.bold, italic: info.italic, underline:false, length: ch.length});
-    }
-    return tokens;
-  }
-
-  function renderTokens(tokens){
+  // ================================================================
+  // HTML -> Unicode plain text (drives the WhatsApp/IG tab from HTML)
+  // ================================================================
+  function htmlToWaText(root){
     let out = '';
-    for(const t of tokens){
-      let ch = t.base;
-      if(t.bold && t.italic) ch = BOLDITALIC_MAP[t.base] || BOLD_MAP[t.base] || t.base;
-      else if(t.bold) ch = BOLD_MAP[t.base] || t.base;
-      else if(t.italic) ch = ITALIC_MAP[t.base] || t.base;
-      out += ch;
-      let len = ch.length;
-      if(t.underline){ out += '\u0332'; len += 1; }
-      t.length = len; // keep in sync so offset math after this render stays accurate
+    function styleFor(el){
+      let bold=false, italic=false, underline=false;
+      let n = el;
+      while(n && n !== root){
+        if(n.nodeType === 1){
+          const tag = n.tagName;
+          if(tag==='B'||tag==='STRONG') bold = true;
+          if(tag==='I'||tag==='EM') italic = true;
+          if(tag==='U') underline = true;
+          const fw = n.style && n.style.fontWeight;
+          if(fw && (fw==='bold' || parseInt(fw)>=600)) bold = true;
+          if(n.style && n.style.fontStyle === 'italic') italic = true;
+          if(n.style && n.style.textDecoration && n.style.textDecoration.includes('underline')) underline = true;
+        }
+        n = n.parentNode;
+      }
+      return {bold, italic, underline};
     }
-    return out;
+    function styleText(text, style){
+      let s = '';
+      for(const ch of Array.from(text)){
+        let mapped = ch;
+        if(style.bold && style.italic) mapped = BOLDITALIC_MAP[ch] || BOLD_MAP[ch] || ch;
+        else if(style.bold) mapped = BOLD_MAP[ch] || ch;
+        else if(style.italic) mapped = ITALIC_MAP[ch] || ch;
+        s += mapped;
+        if(style.underline) s += '̲';
+      }
+      return s;
+    }
+    function walk(node){
+      node.childNodes.forEach(child => {
+        if(child.nodeType === 3){
+          out += styleText(child.textContent, styleFor(child.parentNode));
+        } else if(child.nodeType === 1){
+          const tag = child.tagName;
+          if(tag === 'BR'){ out += '\n'; return; }
+          if(tag === 'LI'){
+            const parentList = child.parentElement;
+            if(parentList && parentList.tagName === 'OL'){
+              const idx = Array.prototype.indexOf.call(parentList.children, child) + 1;
+              out += `${idx}. `;
+            } else {
+              out += '• ';
+            }
+            walk(child);
+            out += '\n';
+            return;
+          }
+          walk(child);
+          if(['P','DIV','UL','OL','H1','H2','H3','H4'].includes(tag)) out += '\n';
+        }
+      });
+    }
+    walk(root);
+    return out.replace(/\n{3,}/g, '\n\n').replace(/\n+$/, '');
   }
 
+  // ================================================================
+  // Unicode plain text -> HTML (drives the HTML tab from WA/IG text)
+  // ================================================================
+  function waTextToHtml(text){
+    function tokenizeLine(line){
+      const chars = Array.from(line);
+      const tokens = [];
+      for(const ch of chars){
+        if(ch === '̲'){
+          if(tokens.length) tokens[tokens.length-1].underline = true;
+          continue;
+        }
+        const info = REVERSE[ch] || {base: ch, bold:false, italic:false};
+        tokens.push({base: info.base, bold: info.bold, italic: info.italic, underline: false});
+      }
+      return tokens;
+    }
+    function tokensToHtml(tokens){
+      let out = '';
+      let i = 0;
+      while(i < tokens.length){
+        const t = tokens[i];
+        let j = i+1;
+        while(j < tokens.length && tokens[j].bold===t.bold && tokens[j].italic===t.italic && tokens[j].underline===t.underline){ j++; }
+        let run = tokens.slice(i,j).map(x=>x.base).join('');
+        run = run.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+        if(t.bold) run = `<b>${run}</b>`;
+        if(t.italic) run = `<i>${run}</i>`;
+        if(t.underline) run = `<u>${run}</u>`;
+        out += run;
+        i = j;
+      }
+      return out;
+    }
+
+    const lines = text.split('\n');
+    const htmlLines = [];
+    let listBuffer = [];
+    let listType = null; // 'ul' | 'ol'
+
+    function flushList(){
+      if(listBuffer.length){
+        htmlLines.push(`<${listType}>${listBuffer.join('')}</${listType}>`);
+        listBuffer = [];
+        listType = null;
+      }
+    }
+
+    for(const line of lines){
+      const bulletMatch = line.match(/^[•\-*]\s+(.*)$/);
+      const numberMatch = line.match(/^\d+\.\s+(.*)$/);
+      if(bulletMatch){
+        if(listType !== 'ul') flushList();
+        listType = 'ul';
+        listBuffer.push(`<li>${tokensToHtml(tokenizeLine(bulletMatch[1]))}</li>`);
+      } else if(numberMatch){
+        if(listType !== 'ol') flushList();
+        listType = 'ol';
+        listBuffer.push(`<li>${tokensToHtml(tokenizeLine(numberMatch[1]))}</li>`);
+      } else {
+        flushList();
+        htmlLines.push(tokensToHtml(tokenizeLine(line)));
+      }
+    }
+    flushList();
+    return htmlLines.join('<br>');
+  }
+
+  // ---- sanitize any pasted HTML down to a safe formatting-only subset ----
+  const ALLOWED_TAGS = new Set(['B','STRONG','I','EM','U','S','STRIKE','P','BR','UL','OL','LI','SPAN','A','DIV','H1','H2','H3','H4','CODE']);
+  const ALLOWED_STYLES = new Set(['font-weight','font-style','text-decoration','color','background-color']);
+
+  function sanitizeHtml(html){
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    function clean(node){
+      [...node.childNodes].forEach(child => {
+        if(child.nodeType === 1){
+          if(!ALLOWED_TAGS.has(child.tagName)){
+            while(child.firstChild) node.insertBefore(child.firstChild, child);
+            node.removeChild(child);
+            return;
+          }
+          const style = child.getAttribute('style');
+          [...child.attributes].forEach(attr => child.removeAttribute(attr.name));
+          if(style){
+            const kept = style.split(';')
+              .map(s => s.trim())
+              .filter(s => ALLOWED_STYLES.has(s.split(':')[0]?.trim()))
+              .join('; ');
+            if(kept) child.setAttribute('style', kept);
+          }
+          clean(child);
+        } else if(child.nodeType !== 3){
+          node.removeChild(child);
+        }
+      });
+    }
+    clean(doc.body);
+    return doc.body.innerHTML;
+  }
+
+  function whatsAppMarkdownToHtml(text){
+    function escapeHtml(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+    function inlineFormat(line){
+      let out = escapeHtml(line);
+      out = out.replace(/```([^`\n]+)```/g, '<code>$1</code>');
+      out = out.replace(/(^|[\s(])\*([^*\n]+)\*(?=[\s).,!?]|$)/g, '$1<b>$2</b>');
+      out = out.replace(/(^|[\s(])_([^_\n]+)_(?=[\s).,!?]|$)/g, '$1<i>$2</i>');
+      out = out.replace(/(^|[\s(])~([^~\n]+)~(?=[\s).,!?]|$)/g, '$1<s>$2</s>');
+      return out;
+    }
+    return text.split('\n').map(inlineFormat).join('<br>');
+  }
+
+  // ---- HTML tab: paste keeps real formatting from any source ----
+  htmlEditor.addEventListener('paste', e => {
+    e.preventDefault();
+    const dt = e.clipboardData;
+    let html = dt.getData('text/html');
+    const text = dt.getData('text/plain');
+
+    if(html){
+      document.execCommand('insertHTML', false, sanitizeHtml(html));
+    } else if(text){
+      const looksLikeWhatsAppMarkdown = /(\*[^*\n]+\*)|(_[^_\n]+_)|(~[^~\n]+~)/.test(text);
+      if(looksLikeWhatsAppMarkdown){
+        document.execCommand('insertHTML', false, whatsAppMarkdownToHtml(text));
+      } else {
+        document.execCommand('insertText', false, text);
+      }
+    }
+    htmlEditor.dispatchEvent(new Event('input'));
+  });
+
+  // ---- WA/IG tab: paste from ANY source becomes Unicode fake-bold plain text ----
+  waEditor.addEventListener('paste', e => {
+    e.preventDefault();
+    const dt = e.clipboardData;
+    const html = dt.getData('text/html');
+    const text = dt.getData('text/plain');
+    let insertText;
+
+    if(html){
+      const container = document.createElement('div');
+      container.innerHTML = sanitizeHtml(html);
+      insertText = htmlToWaText(container);
+    } else if(text){
+      const looksLikeWhatsAppMarkdown = /(\*[^*\n]+\*)|(_[^_\n]+_)|(~[^~\n]+~)/.test(text);
+      if(looksLikeWhatsAppMarkdown){
+        const container = document.createElement('div');
+        container.innerHTML = whatsAppMarkdownToHtml(text);
+        insertText = htmlToWaText(container);
+      } else {
+        insertText = text; // plain text, or already Unicode-styled text copied from elsewhere
+      }
+    }
+    if(insertText != null) document.execCommand('insertText', false, insertText);
+    waEditor.dispatchEvent(new Event('input'));
+  });
+
+  // ================================================================
+  // Manual style buttons — WA/IG tab uses a Unicode token model over
+  // the current selection; HTML tab uses the browser's execCommand.
+  // ================================================================
   function getCaretOffsets(container){
     const sel = window.getSelection();
     if(!sel.rangeCount) return null;
@@ -1788,10 +2020,9 @@
     const end = start + range.toString().length;
     return {start, end};
   }
-
   function setSelectionByOffsets(container, start, end){
     const textNode = container.firstChild;
-    if(!textNode){ return; }
+    if(!textNode) return;
     const len = textNode.length || 0;
     const range = document.createRange();
     range.setStart(textNode, Math.max(0, Math.min(start, len)));
@@ -1800,10 +2031,35 @@
     sel.removeAllRanges();
     sel.addRange(range);
   }
-
+  function tokenizeFull(str){
+    const chars = Array.from(str);
+    const tokens = [];
+    for(const ch of chars){
+      if(ch === '̲'){
+        if(tokens.length){ tokens[tokens.length-1].underline = true; tokens[tokens.length-1].length += 1; }
+        continue;
+      }
+      const info = REVERSE[ch] || {base: ch, bold:false, italic:false};
+      tokens.push({base: info.base, bold: info.bold, italic: info.italic, underline:false, length: ch.length});
+    }
+    return tokens;
+  }
+  function renderTokens(tokens){
+    let out = '';
+    for(const t of tokens){
+      let ch = t.base;
+      if(t.bold && t.italic) ch = BOLDITALIC_MAP[t.base] || BOLD_MAP[t.base] || t.base;
+      else if(t.bold) ch = BOLD_MAP[t.base] || t.base;
+      else if(t.italic) ch = ITALIC_MAP[t.base] || t.base;
+      out += ch;
+      let len = ch.length;
+      if(t.underline){ out += '̲'; len += 1; }
+      t.length = len;
+    }
+    return out;
+  }
   function offsetsToTokenRange(tokens, start, end){
-    let cum = 0;
-    let tStart = tokens.length, tEnd = 0;
+    let cum = 0, tStart = tokens.length, tEnd = 0;
     for(let i=0;i<tokens.length;i++){
       const s = cum, e = cum + tokens[i].length;
       if(start < e && start >= s) tStart = Math.min(tStart, i);
@@ -1815,7 +2071,6 @@
     if(tStart > tEnd) tStart = tEnd;
     return {tStart, tEnd};
   }
-
   function tokenRangeToOffsets(tokens, tStart, tEnd){
     let cum = 0, start = null, end = null;
     for(let i=0;i<tokens.length;i++){
@@ -1828,127 +2083,102 @@
     return {start, end};
   }
 
-  function applyStyle(styleName){
-    editor.focus();
-    const offsets = getCaretOffsets(editor);
+  function waApplyStyle(styleName){
+    waEditor.focus();
+    const offsets = getCaretOffsets(waEditor);
     if(!offsets || offsets.start === offsets.end){
       hint.textContent = 'Select some text first, then click a style button.';
       return;
     }
-    const tokens = tokenize(editor.textContent);
+    const tokens = tokenizeFull(waEditor.textContent);
     const {tStart, tEnd} = offsetsToTokenRange(tokens, offsets.start, offsets.end);
     if(tStart >= tEnd) return;
     const allHave = tokens.slice(tStart, tEnd).every(t => t[styleName]);
     for(let i=tStart; i<tEnd; i++){ tokens[i][styleName] = !allHave; }
-    editor.textContent = renderTokens(tokens);
+    waEditor.textContent = renderTokens(tokens);
     const newOffsets = tokenRangeToOffsets(tokens, tStart, tEnd);
-    setSelectionByOffsets(editor, newOffsets.start, newOffsets.end);
+    setSelectionByOffsets(waEditor, newOffsets.start, newOffsets.end);
     hint.textContent = 'Select more text, or copy the result.';
   }
 
-  function clearFormatting(){
-    editor.focus();
-    const offsets = getCaretOffsets(editor);
-    const tokens = tokenize(editor.textContent);
+  function waApplyListStyle(type){
+    waEditor.focus();
+    const offsets = getCaretOffsets(waEditor) || {start:0, end:0};
+    const text = waEditor.textContent;
+    const start = offsets.start, end = offsets.end;
+    const lineStart = text.lastIndexOf('\n', start-1) + 1;
+    const searchPos = end > start ? end-1 : end;
+    const lineEndIdx = text.indexOf('\n', searchPos);
+    const lineEnd = lineEndIdx === -1 ? text.length : lineEndIdx;
+    const segment = text.slice(lineStart, lineEnd);
+    const lines = segment.split('\n');
+    const bulletRe = /^[•\-*]\s+/;
+    const numberRe = /^\d+\.\s+/;
+    const currentRe = type === 'bullet' ? bulletRe : numberRe;
+    const nonEmptyLines = lines.filter(l => l.trim() !== '');
+    const allHavePrefix = nonEmptyLines.length > 0 && nonEmptyLines.every(l => currentRe.test(l));
+    let counter = 1;
+    const newLines = lines.map(l => {
+      const stripped = l.replace(bulletRe, '').replace(numberRe, '');
+      if(stripped.trim() === '') return stripped;
+      if(allHavePrefix) return stripped;
+      return type === 'bullet' ? `• ${stripped}` : `${counter++}. ${stripped}`;
+    });
+    const newSegment = newLines.join('\n');
+    const newText = text.slice(0, lineStart) + newSegment + text.slice(lineEnd);
+    waEditor.textContent = newText;
+    const newEnd = lineStart + newSegment.length;
+    setSelectionByOffsets(waEditor, lineStart, newEnd);
+    hint.textContent = 'Select more text, or copy the result.';
+  }
+
+  function waClearFormatting(){
+    waEditor.focus();
+    const offsets = getCaretOffsets(waEditor);
+    const tokens = tokenizeFull(waEditor.textContent);
     const range = offsets && offsets.start !== offsets.end
       ? offsetsToTokenRange(tokens, offsets.start, offsets.end)
       : {tStart:0, tEnd: tokens.length};
-    for(let i=range.tStart; i<range.tEnd; i++){
-      tokens[i].bold = false; tokens[i].italic = false; tokens[i].underline = false;
-    }
-    editor.textContent = renderTokens(tokens);
+    for(let i=range.tStart; i<range.tEnd; i++){ tokens[i].bold=false; tokens[i].italic=false; tokens[i].underline=false; }
+    waEditor.textContent = renderTokens(tokens);
     const newOffsets = tokenRangeToOffsets(tokens, range.tStart, range.tEnd);
-    setSelectionByOffsets(editor, newOffsets.start, newOffsets.end);
+    setSelectionByOffsets(waEditor, newOffsets.start, newOffsets.end);
   }
 
-  function removeNumbers(){
-    editor.focus();
-    const offsets = getCaretOffsets(editor);
-    const fullTokens = tokenize(editor.textContent);
+  function waRemoveNumbers(){
+    waEditor.focus();
+    const offsets = getCaretOffsets(waEditor);
+    const fullTokens = tokenizeFull(waEditor.textContent);
     const range = offsets && offsets.start !== offsets.end
       ? offsetsToTokenRange(fullTokens, offsets.start, offsets.end)
       : {tStart:0, tEnd: fullTokens.length};
-
-    // Strip any digit (including styled bold/italic unicode digits) in range
     const kept = [];
     for(let i=0;i<fullTokens.length;i++){
       const t = fullTokens[i];
       if(i>=range.tStart && i<range.tEnd && /[0-9]/.test(t.base)) continue;
       kept.push(t);
     }
-
     let newText = renderTokens(kept);
-
-    // Clean up leftover numbered-list punctuation like ". " or ") " at line starts,
-    // and collapse doubled spaces left behind after removing inline numbers.
     newText = newText
       .split('\n')
       .map(line => line.replace(/^([.\)\-]\s*)+/, ''))
       .join('\n')
       .replace(/ {2,}/g, ' ')
       .replace(/[ \t]+\n/g, '\n');
-
-    editor.textContent = newText;
-    hint.textContent = 'Numbers removed. Select more text, or copy the result.';
+    waEditor.textContent = newText;
+    hint.textContent = 'Numbers removed.';
   }
 
-  function applyListStyle(type){
-    editor.focus();
-    const offsets = getCaretOffsets(editor) || {start:0, end:0};
-    const text = editor.textContent;
-    const start = offsets.start, end = offsets.end;
-
-    // expand the selection out to the full lines it touches
-    const lineStart = text.lastIndexOf('\n', start-1) + 1;
-    const searchPos = end > start ? end-1 : end;
-    const lineEndIdx = text.indexOf('\n', searchPos);
-    const lineEnd = lineEndIdx === -1 ? text.length : lineEndIdx;
-
-    const segment = text.slice(lineStart, lineEnd);
-    const lines = segment.split('\n');
-
-    const bulletRe = /^[•\-*]\s+/;
-    const numberRe = /^\d+\.\s+/;
-    const currentRe = type === 'bullet' ? bulletRe : numberRe;
-
-    const nonEmptyLines = lines.filter(l => l.trim() !== '');
-    const allHavePrefix = nonEmptyLines.length > 0 && nonEmptyLines.every(l => currentRe.test(l));
-
-    let counter = 1;
-    const newLines = lines.map(l => {
-      const stripped = l.replace(bulletRe, '').replace(numberRe, '');
-      if(stripped.trim() === '') return stripped;
-      if(allHavePrefix) return stripped; // toggle off
-      return type === 'bullet' ? `• ${stripped}` : `${counter++}. ${stripped}`;
-    });
-
-    const newSegment = newLines.join('\n');
-    const newText = text.slice(0, lineStart) + newSegment + text.slice(lineEnd);
-    editor.textContent = newText;
-
-    const newEnd = lineStart + newSegment.length;
-    setSelectionByOffsets(editor, lineStart, newEnd);
-    hint.textContent = 'Select more text, or copy the result.';
-  }
-
-  document.getElementById('fmtBoldBtn').addEventListener('click', () => applyStyle('bold'));
-  document.getElementById('fmtItalicBtn').addEventListener('click', () => applyStyle('italic'));
-  document.getElementById('fmtUnderlineBtn').addEventListener('click', () => applyStyle('underline'));
-  document.getElementById('fmtBulletBtn').addEventListener('click', () => applyListStyle('bullet'));
-  document.getElementById('fmtNumberBtn').addEventListener('click', () => applyListStyle('number'));
-  document.getElementById('fmtRemoveNumBtn').addEventListener('click', removeNumbers);
-  document.getElementById('fmtClearBtn').addEventListener('click', clearFormatting);
-
-  // keep the editor as a single flat text node so offset math stays simple
-  editor.addEventListener('input', () => {
-    const offsets = getCaretOffsets(editor) || {start:0, end:0};
-    const text = editor.textContent;
-    editor.textContent = text;
-    setSelectionByOffsets(editor, offsets.start, offsets.end);
+  // keep the WA editor as a single flat text node so offset math stays simple
+  waEditor.addEventListener('input', () => {
+    const offsets = getCaretOffsets(waEditor) || {start:0, end:0};
+    const text = waEditor.textContent;
+    waEditor.textContent = text;
+    setSelectionByOffsets(waEditor, offsets.start, offsets.end);
   });
 
-  // handle Enter as a literal newline instead of a new block element
-  editor.addEventListener('keydown', e => {
+  // handle Enter in the WA editor as a literal newline instead of a new block element
+  waEditor.addEventListener('keydown', e => {
     if(e.key === 'Enter'){
       e.preventDefault();
       const sel = window.getSelection();
@@ -1961,22 +2191,122 @@
       range.setEndAfter(node);
       sel.removeAllRanges();
       sel.addRange(range);
-      editor.dispatchEvent(new Event('input'));
-      return;
-    }
-    const cmd = e.metaKey || e.ctrlKey;
-    if(cmd){
-      const key = e.key.toLowerCase();
-      if(key === 'b'){ e.preventDefault(); applyStyle('bold'); }
-      else if(key === 'i'){ e.preventDefault(); applyStyle('italic'); }
-      else if(key === 'u'){ e.preventDefault(); applyStyle('underline'); }
+      waEditor.dispatchEvent(new Event('input'));
     }
   });
 
-  copyBtn.addEventListener('click', async () => {
-    const text = editor.textContent;
-    const escaped = text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
-    const html = `<span style="font-size:11px;">${escaped}</span>`;
+  // ---- HTML tab manual styling via execCommand ----
+  function htmlApplyStyle(cmd){
+    htmlEditor.focus();
+    document.execCommand(cmd);
+    htmlEditor.dispatchEvent(new Event('input'));
+  }
+  function htmlClearFormatting(){
+    htmlEditor.focus();
+    const sel = window.getSelection();
+    if(!sel.rangeCount || sel.getRangeAt(0).collapsed){
+      const range = document.createRange();
+      range.selectNodeContents(htmlEditor);
+      sel.removeAllRanges();
+      sel.addRange(range);
+    }
+    document.execCommand('removeFormat');
+    htmlEditor.dispatchEvent(new Event('input'));
+  }
+  function htmlRemoveNumbers(){
+    htmlEditor.focus();
+    const sel = window.getSelection();
+    const hasSelection = sel.rangeCount > 0 && !sel.getRangeAt(0).collapsed && htmlEditor.contains(sel.anchorNode);
+    function stripDigits(html){
+      const doc = new DOMParser().parseFromString(html, 'text/html');
+      function walk(node){
+        node.childNodes.forEach(child => {
+          if(child.nodeType === 3) child.textContent = child.textContent.replace(/[0-9]/g, '');
+          else if(child.nodeType === 1) walk(child);
+        });
+      }
+      walk(doc.body);
+      let out = doc.body.innerHTML;
+      out = out.replace(/(<br\s*\/?>|^)([ \t]*[.)\-][ \t]*)+/gi, '$1');
+      out = out.replace(/(<li[^>]*>)([ \t]*[.)\-][ \t]*)+/gi, '$1');
+      out = out.replace(/ {2,}/g, ' ');
+      return out;
+    }
+    if(hasSelection){
+      const range = sel.getRangeAt(0);
+      const div = document.createElement('div');
+      div.appendChild(range.cloneContents());
+      document.execCommand('insertHTML', false, stripDigits(div.innerHTML));
+    } else {
+      htmlEditor.innerHTML = stripDigits(htmlEditor.innerHTML);
+    }
+    htmlEditor.dispatchEvent(new Event('input'));
+    hint.textContent = 'Numbers removed.';
+  }
+
+  htmlEditor.addEventListener('input', () => {});
+  waEditor.addEventListener('input', () => {
+    hint.textContent = waEditor.textContent.trim()
+      ? 'Select more text, or copy the result.'
+      : 'Select text, then click a style button.';
+  });
+
+  // ---- toolbar buttons dispatch to whichever tab is active ----
+  document.getElementById('fmtBoldBtn').addEventListener('click', () =>
+    activeTab === 'wa' ? waApplyStyle('bold') : htmlApplyStyle('bold'));
+  document.getElementById('fmtItalicBtn').addEventListener('click', () =>
+    activeTab === 'wa' ? waApplyStyle('italic') : htmlApplyStyle('italic'));
+  document.getElementById('fmtUnderlineBtn').addEventListener('click', () =>
+    activeTab === 'wa' ? waApplyStyle('underline') : htmlApplyStyle('underline'));
+  document.getElementById('fmtBulletBtn').addEventListener('click', () =>
+    activeTab === 'wa' ? waApplyListStyle('bullet') : htmlApplyStyle('insertUnorderedList'));
+  document.getElementById('fmtNumberBtn').addEventListener('click', () =>
+    activeTab === 'wa' ? waApplyListStyle('number') : htmlApplyStyle('insertOrderedList'));
+  document.getElementById('fmtRemoveNumBtn').addEventListener('click', () =>
+    activeTab === 'wa' ? waRemoveNumbers() : htmlRemoveNumbers());
+  document.getElementById('fmtClearBtn').addEventListener('click', () =>
+    activeTab === 'wa' ? waClearFormatting() : htmlClearFormatting());
+
+  [['b','bold'],['i','italic'],['u','underline']].forEach(([key, cmd]) => {
+    [waEditor, htmlEditor].forEach(ed => {
+      ed.addEventListener('keydown', e => {
+        if((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === key){
+          e.preventDefault();
+          ed === waEditor ? waApplyStyle(cmd) : htmlApplyStyle(cmd);
+        }
+      });
+    });
+  });
+
+  // ================================================================
+  // Tab switching — regenerates the tab you're switching TO from the
+  // tab you're switching FROM, so edits in either always carry over.
+  // ================================================================
+  function switchTab(tab){
+    if(tab === activeTab) return;
+    if(tab === 'html'){
+      htmlEditor.innerHTML = waTextToHtml(waEditor.textContent);
+      waEditor.style.display = 'none';
+      htmlEditor.style.display = '';
+      tabWaBtn.classList.remove('active');
+      tabHtmlBtn.classList.add('active');
+    } else {
+      waEditor.textContent = htmlToWaText(htmlEditor);
+      htmlEditor.style.display = 'none';
+      waEditor.style.display = '';
+      tabHtmlBtn.classList.remove('active');
+      tabWaBtn.classList.add('active');
+    }
+    activeTab = tab;
+    hint.textContent = 'Select text, then click a style button.';
+  }
+  tabWaBtn.addEventListener('click', () => switchTab('wa'));
+  tabHtmlBtn.addEventListener('click', () => switchTab('html'));
+
+  // ================================================================
+  // Copy — copies in whichever format matches the active tab
+  // ================================================================
+  async function writeClipboard(text, html, btn){
     try{
       if(navigator.clipboard && window.ClipboardItem){
         const item = new ClipboardItem({
@@ -1991,8 +2321,9 @@
       try{
         await navigator.clipboard.writeText(text);
       }catch(e2){
+        const target = activeTab === 'wa' ? waEditor : htmlEditor;
         const range = document.createRange();
-        range.selectNodeContents(editor);
+        range.selectNodeContents(target);
         const sel = window.getSelection();
         sel.removeAllRanges();
         sel.addRange(range);
@@ -2000,9 +2331,20 @@
         sel.removeAllRanges();
       }
     }
-    const old = copyBtn.textContent;
-    copyBtn.textContent = 'Copied';
-    setTimeout(() => copyBtn.textContent = old, 1200);
+    const old = btn.textContent;
+    btn.textContent = 'Copied';
+    setTimeout(() => btn.textContent = old, 1200);
+  }
+
+  copyBtn.addEventListener('click', () => {
+    if(activeTab === 'wa'){
+      const text = waEditor.textContent;
+      const escaped = text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+      const html = `<span style="font-size:11px;">${escaped}</span>`;
+      writeClipboard(text, html, copyBtn);
+    } else {
+      writeClipboard(htmlEditor.textContent, htmlEditor.innerHTML, copyBtn);
+    }
   });
 })();
 
